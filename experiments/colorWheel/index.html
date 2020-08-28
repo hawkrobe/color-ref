@@ -7,6 +7,11 @@
 
     <!-- Load jQuery, which lets us handle mouse events -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <link rel="stylesheet"
+          href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+          crossorigin="anonymous">
+    
     
     <script type="text/javascript" src="dist/js/bundle.js"></script>
 
@@ -20,32 +25,42 @@
     </head>
 
   <body>
-
-    <div id='header'>
-      <div id='textInfo'>
-	<h1 id='roleLabel'></h1> 
-	<p id='instructs'> </p>
+    <div id='refgame' class='container-fluid'>
+      <div class='row'>
+        <h3 class="col" id='role'></h3>
+        <p class="col" id='feedback'></p>
       </div>
-      <p style="color:white" id='feedback'> </p>
-      <p style="color:red" id='roundnumber'>Waiting room</p>
-      <p style="color:green" id='score'>total bonus: $0.00</p>
+      
+      <div class="row" id="color-picker-grid"></div>
+      <div class="row" id="word-grid"></div>
+      <div id="trial-counter">Loading...</div>
     </div>
 
-    <p id="waiting"></p>
+    <!-- <div id='header'> -->
+    <!--   <div id='textInfo'> -->
+    <!--     <h1 id='roleLabel'></h1>  -->
+    <!--     <p id='instructs'> </p> -->
+    <!--   </div> -->
+    <!--   <p style="color:white" id='feedback'> </p> -->
+    <!--   <p style="color:red" id='roundnumber'>Waiting room</p> -->
+    <!--   <p style="color:green" id='score'>total bonus: $0.00</p> -->
+    <!-- </div> -->
 
-    <div id='main'>
-      <div id='message_panel'>
-        <ul id="messages"></ul>
-        <hr>
-        <div id="chatarea">
-	  <form action="">
-            <input type="text" id="chatbox" autocomplete="off" />
-            <input type="submit" id="chatbutton" value="Send"></>
-	  </form>
-        </div>
-      </div>
-      <div id="object_grid"> </div>
-    </div>
+    <!-- <p id="waiting"></p> -->
+
+    <!-- <div id='main'> -->
+    <!--   <div id='message_panel'> -->
+    <!--     <ul id="messages"></ul> -->
+    <!--     <hr> -->
+    <!--     <div id="chatarea"> -->
+    <!--       <form action=""> -->
+    <!--         <input type="text" id="chatbox" autocomplete="off" /> -->
+    <!--         <input type="submit" id="chatbutton" value="Send"></> -->
+    <!--       </form> -->
+    <!--     </div> -->
+    <!--   </div> -->
+    <!--   <div id="object_grid"> </div> -->
+    <!-- </div> -->
     
 
     <div id="exit_survey" style="display:none">
