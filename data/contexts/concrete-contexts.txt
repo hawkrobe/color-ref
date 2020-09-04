@@ -1,0 +1,50 @@
+hairdryer  calf  book (read)  panther
+toilet  elephant  tank (army)  jeans
+squash (vegetable)  calf  tram  thistle
+tarantula  moose  hill  belt
+wrist  fork  window  case (container)
+building  corpse  prune (fruit)  book (read)
+berry  crab  ceiling  toe
+hand  lobster  ocean  calf (muscle)
+ceiling  organ (liver)  daffodil  wrist
+tripod  crab  bracelet  panther
+organ (liver)  mirror  insect  building
+fork  abdomen  file (tool)  otter
+insect  berry  coach (bus)  magazine
+cigar  necklace  calf (muscle)  moose
+harbour  stool (chair)  hawk  eel
+counter (worktop)  hippopotamus  barley  jeans
+stool  lark (bird)  boat  lobster
+warehouse  badger  weapon  calf (muscle)
+book (read)  ceiling  chest (torso)  toe
+spinach  file (tool)  bracelet  warehouse
+eel  necklace  needle  ocean
+bracelet  dolphin  microscope  insect
+badger  hawk  chalk  suit (special clothes)
+mirror  ferret  razor  cockroach
+rock  cornflour  hand  shampoo
+badger  stethoscope  tram  belt
+shampoo  moose  kangaroo  orange (fruit)
+goat  shirt  bracelet  kangaroo
+tarantula  flesh  ocean  insect
+tank (army)  toe  file (tool)  stool
+book  shoes  kangaroo  toe
+loaf (bread)  jeans  weapon  daffodil
+thistle  rock  elbow  barley
+toaster  shirt  bar (metal)  counter (worktop)
+pheasant  tripod  cigar  corpse
+harbour  eel  cornflour  elbow
+chest (torso)  ceiling  crab  jeans
+harbour  rock  warehouse  file (tool)
+toe  bar (metal)  book (read)  elbow
+orange (fruit)  calf (muscle)  belt  hippopotamus
+necklace  squash (vegetable)  hawk  horn
+flesh  pheasant  needle  shirt
+shoes  mirror  calf  razor
+shirt  cornflour  belt  flesh
+stool (chair)  seat  belt  prune (fruit)
+motorway  dolphin  crab  computer
+tie (neck)  horn  bar (metal)  organ (liver)
+hawk  elbow  otter  corpse
+eel  belt  motorway  iron (metal)
+ferret  necklace  tram  razor
