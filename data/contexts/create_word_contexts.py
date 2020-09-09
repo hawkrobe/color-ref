@@ -92,20 +92,38 @@ def selectWords(imag_ratings, filename, words, imag, cnc):
 final_cnc_words = selectWords(concrete_imag, "selected-cnc-group.txt", concrete_words, concrete_imag, concrete_cnc)
 final_abs_words = selectWords(abstract_imag, "selected-abs-group.txt", abstract_words, abstract_imag, abstract_cnc)
 
-print(final_abs_words)
-print(final_cnc_words)
+# print(final_abs_words)
+# print(final_cnc_words)
 
 #---------------------------------------------------------------------------------
 # CREATE CONTEXTS
 
 # randomly sample groups of 4 words from each set
+
 def createContexts(words, filename):
+    contexts_list = []
+    id = []
     contexts = open(filename, "w+")
     for i in range(50):
         ctx = random.sample(words, 4)
+        contexts_list.append(list(ctx))
+        id.append(i)
         contexts.write("%s  %s  %s  %s\n" % (ctx[0], ctx[1], ctx[2], ctx[3]))
 
     contexts.close()
+    df = pd.DataFrame({'id':id, 'words':contexts_list})
+    print(df)
+    return df
+    
 
-createContexts(final_cnc_words, "concrete-contexts.txt")
-createContexts(final_abs_words, "abstract-contexts.txt")
+df_cnc = createContexts(final_cnc_words, "concrete-contexts.txt")
+# convert df to json
+df_cnc.to_json('concrete-contexts.json', orient='records')  
+
+
+df_abs = createContexts(final_abs_words, "abstract-contexts.txt")
+# convert df to json
+df_abs.to_json('abstract-contexts.json', orient='records')
+
+#---------------------------------------------------------------------------------
+
