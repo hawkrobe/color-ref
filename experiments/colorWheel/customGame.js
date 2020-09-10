@@ -18,9 +18,9 @@ class ServerRefGame extends ServerGame {
       console.log('round ended...');
       var all = socket.game.activePlayers();
       setTimeout(function() {
-	_.map(all, function(p){
-	  p.player.instance.emit( 'updateScore', data);
-	});
+        _.map(all, function(p){
+          p.player.instance.emit( 'updateScore', data);
+        });
        }, 1000);
       socket.game.newRound(4000);
     });
@@ -33,8 +33,8 @@ class ServerRefGame extends ServerGame {
   getRandomizedConditions() {
     var numEach = this.numRounds / 3;
     var conditions = [].concat(utils.fillArray("equal", numEach),
-			       utils.fillArray("closer", numEach),
-			       utils.fillArray("further", numEach));
+                               utils.fillArray("closer", numEach),
+                               utils.fillArray("further", numEach));
     return _.shuffle(conditions);
   };
 
@@ -45,11 +45,11 @@ class ServerRefGame extends ServerGame {
       var condition = conditionList[i];
       var trialInfo = this.sampleTrial(condition); // Sample three objects 
       var roleNames = (this.playersThreshold == 1 ? [this.firstRole] : 
-		       _.values(this.playerRoleNames));
+                       _.values(this.playerRoleNames));
       trialList.push({
-	stimuli: trialInfo, 
-	condition: condition, 
-	roles: _.zipObject(_.map(this.players, p => p.id), roleNames)
+        stimuli: trialInfo, 
+        condition: condition, 
+        roles: _.zipObject(_.map(this.players, p => p.id), roleNames)
       });
     };
     return(trialList);
@@ -61,33 +61,33 @@ class ServerRefGame extends ServerGame {
       var firstDistractor = {color: utils.randomColor(opts), targetStatus: "distr1"};
       var secondDistractor = {color: utils.randomColor(opts), targetStatus: "distr2"};
       if(this.checkItem(condition,target,firstDistractor,secondDistractor)) {
-	  // attach "condition" to each stimulus object
-	  return [target, firstDistractor, secondDistractor];
+          // attach "condition" to each stimulus object
+          return [target, firstDistractor, secondDistractor];
       } else { // Try again if something is wrong
-	  return this.sampleTrial(condition);
+          return this.sampleTrial(condition);
       }
   };
 
     checkItem (condition, target, firstDistractor, secondDistractor) {
-	var f = 5; // floor difference
-	var t = 20; // threshold
-	var targetVsDistr1 = utils.colorDiff(target.color, firstDistractor.color);
-	var targetVsDistr2 = utils.colorDiff(target.color, secondDistractor.color);
-	var distr1VsDistr2 = utils.colorDiff(firstDistractor.color, secondDistractor.color);
-	if(targetVsDistr1 < f || targetVsDistr2 < f || distr1VsDistr2 < f) {
-	    return false;
-	} else if(condition === "equal") {
-	    return targetVsDistr1 > t && targetVsDistr2 > t && distr1VsDistr2 > t;
-	} else if (condition === "closer") {
-	    return targetVsDistr1 < t && targetVsDistr2 < t && distr1VsDistr2 < t;
-	} else if (condition === "further") {
-	    return targetVsDistr1 < t && targetVsDistr2 > t && distr1VsDistr2 > t;
-	} else {
-	    throw "condition name (" + condition + ") not known";
-	}
+        var f = 5; // floor difference
+        var t = 20; // threshold
+        var targetVsDistr1 = utils.colorDiff(target.color, firstDistractor.color);
+        var targetVsDistr2 = utils.colorDiff(target.color, secondDistractor.color);
+        var distr1VsDistr2 = utils.colorDiff(firstDistractor.color, secondDistractor.color);
+        if(targetVsDistr1 < f || targetVsDistr2 < f || distr1VsDistr2 < f) {
+            return false;
+        } else if(condition === "equal") {
+            return targetVsDistr1 > t && targetVsDistr2 > t && distr1VsDistr2 > t;
+        } else if (condition === "closer") {
+            return targetVsDistr1 < t && targetVsDistr2 < t && distr1VsDistr2 < t;
+        } else if (condition === "further") {
+            return targetVsDistr1 < t && targetVsDistr2 > t && distr1VsDistr2 > t;
+        } else {
+            throw "condition name (" + condition + ") not known";
+        }
     };
     
-  onMessage (client,message) {
+  onMessage (client, message) {
     //Cut the message up into sub components
     var message_parts = message.split('.');
 
@@ -106,25 +106,25 @@ class ServerRefGame extends ServerGame {
     case 'chatMessage' :
       console.log('received chat message');
       if(client.game.playerCount == gc.playersThreshold && !gc.paused) {
-	var msg = message_parts[1].replace(/~~~/g,'.');
-	console.log(msg);
-	_.map(all, p => p.player.instance.emit( 'chatMessage', {
-	  user: client.userid, msg: msg
-	}));
+        var msg = message_parts[1].replace(/~~~/g,'.');
+        console.log(msg);
+        _.map(all, p => p.player.instance.emit( 'chatMessage', {
+          user: client.userid, msg: msg
+        }));
       }
       break;
       
     case 'clickedObj' :
       _.map(all, p => p.player.instance.emit('updateScore', {
-	outcome: message_parts[2]
+        outcome: message_parts[2]
       }));
       setTimeout(function() {
-	_.map(all, function(p){
-	  p.player.instance.emit( 'newRoundUpdate', {user: client.userid} );
-	});
-	gc.newRound();
+        _.map(all, function(p){
+          p.player.instance.emit( 'newRoundUpdate', {user: client.userid} );
+        });
+        gc.newRound();
       }, 3000);
-	
+        
       break; 
 
     case 'exitSurvey' :
@@ -149,16 +149,16 @@ class ServerRefGame extends ServerGame {
     //   //var target = client.game.currStim.target;
     //   //var distractor = target == 'g1' ? 'g0' : 'g1';
     //   return {
-    // 	iterationName: client.game.iterationName,
-    // 	gameid: client.game.id,
-    // 	time: Date.now(),
-    // 	workerId: client.workerid,
-    // 	assignmentId: client.assignmentid,
-    // 	trialNum: client.game.roundNum,
-    // 	trialType: client.game.currStim.currGoalType,
-    // 	// targetGoalSet: client.game.currStim.goalSets[target],
-    // 	// distractorGoalSet: client.game.currStim.goalSets[distractor],
-    // 	firstRole: client.game.firstRole
+    //  iterationName: client.game.iterationName,
+    //  gameid: client.game.id,
+    //  time: Date.now(),
+    //  workerId: client.workerid,
+    //  assignmentId: client.assignmentid,
+    //  trialNum: client.game.roundNum,
+    //  trialType: client.game.currStim.currGoalType,
+    //  // targetGoalSet: client.game.currStim.goalSets[target],
+    //  // distractorGoalSet: client.game.currStim.goalSets[distractor],
+    //  firstRole: client.game.firstRole
     //   };
     // };
     
@@ -166,34 +166,34 @@ class ServerRefGame extends ServerGame {
     //   var selections = message_data.slice(3);
     //   var allObjs = client.game.currStim.hiddenCards;
     //   return _.extend(
-    // 	commonOutput(client, message_data), {
-    // 	  sender: message_data[1],
-    // 	  timeFromMessage: message_data[2],
-    // 	  revealedObjs : selections,
-    // 	  numRevealed : selections.length,
-    // 	  fullContext: JSON.stringify(_.map(allObjs, v => {
-    // 	    return _.omit(v, ['rank', 'suit', 'url']);
-    // 	  }))
-    // 	});
+    //  commonOutput(client, message_data), {
+    //    sender: message_data[1],
+    //    timeFromMessage: message_data[2],
+    //    revealedObjs : selections,
+    //    numRevealed : selections.length,
+    //    fullContext: JSON.stringify(_.map(allObjs, v => {
+    //      return _.omit(v, ['rank', 'suit', 'url']);
+    //    }))
+    //  });
     // };
     
 
     // var exitSurveyOutput = function(client, message_data) {
     //   var subjInfo = JSON.parse(message_data.slice(1));
     //   return _.extend(
-    // 	_.omit(commonOutput(client, message_data),
-    // 	       ['targetGoalSet', 'distractorGoalSet', 'trialType', 'trialNum']),
-    // 	subjInfo);
+    //  _.omit(commonOutput(client, message_data),
+    //         ['targetGoalSet', 'distractorGoalSet', 'trialType', 'trialNum']),
+    //  subjInfo);
     // };
     
 
     // var messageOutput = function(client, message_data) {
     //   return _.extend(
-    // 	commonOutput(client, message_data), {
-    // 	  cardAskedAbout: message_data[1],
-    // 	  sender: message_data[4],
-    // 	  timeFromRoundStart: message_data[3]
-    // 	}
+    //  commonOutput(client, message_data), {
+    //    cardAskedAbout: message_data[1],
+    //    sender: message_data[4],
+    //    timeFromRoundStart: message_data[3]
+    //  }
     //   );
     // };
 
@@ -237,8 +237,8 @@ class GameMap {
   
   sampleInitRevealed (transformation) {
     const grid = (this.trialType == 'catch' ? this.sampleInitRevealedCatch() :
-		  this.trialType == 'pragmatic' ? this.sampleInitRevealedPragmatic() :
-		  console.error('unknown trialType' + this.trialType));
+                  this.trialType == 'pragmatic' ? this.sampleInitRevealedPragmatic() :
+                  console.error('unknown trialType' + this.trialType));
     const dict = this.matrixToDict(transformation(grid));
     return _.filter(_.keys(dict), key => dict[key] === 'x');
   }
