@@ -86,7 +86,8 @@ function initStimGrid(game) {
 	.attr({'id' : stim.word})
         .text(stim.word)
 	.css({
-	  'background' : 'white'
+	  'background' : 'white',
+          'height' : '250px'
 	});
     $("#word-grid").append(div);
   });
