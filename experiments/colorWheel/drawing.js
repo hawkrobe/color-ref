@@ -1,5 +1,5 @@
 var Confetti = require('./src/confetti.js');
-var munsell = _.cloneDeep(require('./munsell.json'));
+var munsell = _.cloneDeep(require('./munsell-gibson.json'));
 var confetti = new Confetti(300);
 
 // This gets called when someone selects something in the menu during the 
@@ -103,16 +103,22 @@ function initStimGrid(game) {
 function initColorGrid(game) {
   // Add objects to grid
   _.forEach(game.currStim, (stim, i) => {
-    console.log(stim);
+    console.log(stim.color);
     var div = $('<div/>')
 	.addClass('pressable-color')
         .addClass('col')
 	.attr({'id' : stim.munsellName})
 	.css({
           'background' : 'rgb(' + stim.color.join(',') + ')',
-          'height' : '250px'
-	});
-    $("#color-picker-grid").append(div);
+          'height' : '250px',
+  });
+  // for (var rows = 0; rows < 9; rows++) {
+  //   for (var columns = 0; columns < 9; columns++) {
+  //     $("#color-picker-grid").append(div);
+  //   };
+  // };
+  // $(".grid").width(960/9);
+  // $(".grid").height(960/9);
   });
   
   // Allow listener to click on things
