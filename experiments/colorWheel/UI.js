@@ -100,26 +100,30 @@ function initStimGrid(game) {
   }
 }
 
+// Add objects to grid
 function initColorGrid(game) {
-  // Add objects to grid
+  // when stim has 'hue' value marking row,
+  // we can organize colors in different rows by
+  // var rows = _.groupBy(munsell, chip => chip.hue)
+  // _.forEach(_.values(rows), row => {
+  //   var rowDiv = $('<div/>').addClass('row')
+  //   _.forEach(row, color => {
+  //     var colorDiv = $('...').addClass('pressable-color').addClass('col')...
+  //     ...
+  //     rowDiv.append(colorDiv)
+  //   })
+  //   $('#color-picker-grid').append(rowDiv)
+  // })
   _.forEach(munsell, (stim, i) => {
-    console.log(stim);
     var div = $('<div/>')
         .addClass('pressable-color')
         .addClass('col')
         .attr({'id' : stim.munsellName})
         .css({
           'background' : 'rgb' + stim.rgb,
-          'height' : '250px',
+          'height' : '50px',
         });
     $("#color-picker-grid").append(div);
-  // for (var rows = 0; rows < 9; rows++) {
-  //   for (var columns = 0; columns < 9; columns++) {
-
-  //   };
-  // };
-  // $(".grid").width(960/9);
-  // $(".grid").height(960/9);
   });
   
   // Allow listener to click on things
