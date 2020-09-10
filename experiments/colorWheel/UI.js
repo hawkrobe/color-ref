@@ -102,14 +102,14 @@ function initStimGrid(game) {
 
 function initColorGrid(game) {
   // Add objects to grid
-  _.forEach(game.currStim, (stim, i) => {
-    console.log(stim.color);
+  _.forEach(munsell, (stim, i) => {
+    console.log(stim);
     var div = $('<div/>')
 	.addClass('pressable-color')
         .addClass('col')
 	.attr({'id' : stim.munsellName})
 	.css({
-          'background' : 'rgb(' + stim.color.join(',') + ')',
+          'background' : 'rgb' + stim.rgb,
           'height' : '250px',
   });
   // for (var rows = 0; rows < 9; rows++) {
