@@ -1,4 +1,4 @@
-var UI = require('./drawing.js');
+var UI = require('./UI.js');
 
 // Update client versions of variables with data received from
 // server_send_update function in game.core.js
