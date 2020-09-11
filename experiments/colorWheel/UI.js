@@ -78,17 +78,11 @@ function setupSpeakerHandlers(game) {
 
 function initStimGrid(game) {
   // Add objects to grid
-  _.forEach(game.currStim, (stim, i) => {
-    console.log(stim);
+  _.forEach(game.context, (word, i) => {
     var div = $('<div/>')
-        .addClass('pressable-text')
-        .addClass('col')
-        .attr({'id' : stim.word})
-        .text(stim.word)
-        .css({
-          'background' : 'white',
-          'height' : '250px'
-        });
+        .addClass('col h2 pressable-text border rounded-pill bg-light')
+        .append($('<div/>').addClass('box text-center').text(word))
+        .attr({'id' : word});
     $("#word-grid").append(div);
   });
 
@@ -148,14 +142,14 @@ function drawScreen (game) {
 
 function reset (game, data) {
   $('#scoreupdate').html(" ");
-  if(game.roundNum + 1 > game.numRounds) {
+  if(game.trialNum + 1 > game.numTrials) {
     $('#roundnumber').empty();
     $('#instructs').empty()
-      .append("Round\n" + (game.roundNum + 1) + "/" + game.numRounds);
+      .append("Round\n" + (game.trialNum + 1) + "/" + game.numTrials);
   } else {
     $('#feedback').empty();
     $('#roundnumber').empty()
-      .append("Round\n" + (game.roundNum + 1) + "/" + game.numRounds);
+      .append("Round\n" + (game.trialNum + 1) + "/" + game.numTrials);
   }
 
   $('#main-div').show();
