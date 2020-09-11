@@ -8,9 +8,11 @@ function updateState (game, data){
   console.log(data.currStim.roles);
   game.my_role = data.currStim.roles[game.my_id];
   game.condition = data.currStim.condition;
-  game.currStim = data.currStim.stimuli;
+  game.context = data.currStim.context;
+  game.target = data.currStim.target;  
   game.active = data.active;
-  game.roundNum = data.roundNum;
+  game.blockNum = data.blockNum;
+  game.trialNum = data.trialNum;  
   game.roundStartTime = Date.now();
 };
 
