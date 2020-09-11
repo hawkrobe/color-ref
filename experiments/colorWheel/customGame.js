@@ -7,9 +7,15 @@ var ServerGame = require(__base + 'src/game.js')['ServerGame'];
 class ServerRefGame extends ServerGame {
   constructor(config) {
     super(config);
-    this.trialList = [];
-    this.numRounds = config.numRounds;
+    this.contexts = {
+      'concrete' : _.clone(_.sample(require('../../data/contexts/concrete-contexts.json'))),
+      'abstract' : _.clone(_.sample(require('../../data/contexts/abstract-contexts.json')))
+    };
+    this.numBlocks = 6;
+    this.numTrialsInBlock = 8;
+    this.numTrials = this.numBlocks * this.numTrialsInBlock;
     this.firstRole = _.sample(['speaker', 'listener']);
+    this.trialList = this.makeTrialList();
   }
 
   customEvents (socket) {
@@ -31,62 +37,41 @@ class ServerRefGame extends ServerGame {
   // *
 
   getRandomizedConditions() {
-    var numEach = this.numRounds / 3;
-    var conditions = [].concat(utils.fillArray("equal", numEach),
-                               utils.fillArray("closer", numEach),
-                               utils.fillArray("further", numEach));
+    var numEach = this.numTrialsInBlock / 2;
+    var conditions = [].concat(utils.fillArray("concrete", numEach),
+                               utils.fillArray("abstract", numEach));
     return _.shuffle(conditions);
   };
 
   makeTrialList () {
-    var conditionList = this.getRandomizedConditions();
     var trialList = [];
-    for (var i = 0; i < conditionList.length; i++) {
-      var condition = conditionList[i];
-      var trialInfo = this.sampleTrial(condition); // Sample three objects 
-      var roleNames = (this.playersThreshold == 1 ? [this.firstRole] : 
-                       _.values(this.playerRoleNames));
-      trialList.push({
-        stimuli: trialInfo, 
-        condition: condition, 
-        roles: _.zipObject(_.map(this.players, p => p.id), roleNames)
-      });
-    };
+    _.forEach(_.range(this.numBlocks), blockNum => {
+      trialList.push(...this.sampleBlock(blockNum));
+    });
     return(trialList);
   };
 
-  sampleTrial (condition) {
-      var opts = {fixedL : true};
-      var target = {color: utils.randomColor(opts), targetStatus : "target"};
-      var firstDistractor = {color: utils.randomColor(opts), targetStatus: "distr1"};
-      var secondDistractor = {color: utils.randomColor(opts), targetStatus: "distr2"};
-      if(this.checkItem(condition,target,firstDistractor,secondDistractor)) {
-          // attach "condition" to each stimulus object
-          return [target, firstDistractor, secondDistractor];
-      } else { // Try again if something is wrong
-          return this.sampleTrial(condition);
-      }
-  };
-
-    checkItem (condition, target, firstDistractor, secondDistractor) {
-        var f = 5; // floor difference
-        var t = 20; // threshold
-        var targetVsDistr1 = utils.colorDiff(target.color, firstDistractor.color);
-        var targetVsDistr2 = utils.colorDiff(target.color, secondDistractor.color);
-        var distr1VsDistr2 = utils.colorDiff(firstDistractor.color, secondDistractor.color);
-        if(targetVsDistr1 < f || targetVsDistr2 < f || distr1VsDistr2 < f) {
-            return false;
-        } else if(condition === "equal") {
-            return targetVsDistr1 > t && targetVsDistr2 > t && distr1VsDistr2 > t;
-        } else if (condition === "closer") {
-            return targetVsDistr1 < t && targetVsDistr2 < t && distr1VsDistr2 < t;
-        } else if (condition === "further") {
-            return targetVsDistr1 < t && targetVsDistr2 > t && distr1VsDistr2 > t;
-        } else {
-            throw "condition name (" + condition + ") not known";
-        }
-    };
-    
+  sampleBlock (blockNum) {
+    var conditionList = this.getRandomizedConditions();
+    var tmp_concrete = _.shuffle(_.clone(this.contexts['concrete']['words']));
+    var tmp_abstract = _.shuffle(_.clone(this.contexts['abstract']['words']));
+    return _.map(conditionList, (conditionName, trialInBlock) => {
+      var roleNames = (this.playersThreshold == 1 ? [this.firstRole] : 
+                       _.values(this.playerRoleNames));
+      return {
+        condition: conditionName,
+        context: this.contexts[conditionName]['words'],
+        context_id: conditionName + '_' + this.contexts[conditionName]['id'],
+        target: (conditionName == 'concrete' ?
+                 tmp_concrete.pop() :
+                 tmp_abstract.pop()),
+        blockNum : blockNum,
+        trialNum : blockNum * 8 + trialInBlock,
+        roles: _.zipObject(_.map(this.players, p => p.id), roleNames)
+      };
+    });
+  }
+  
   onMessage (client, message) {
     //Cut the message up into sub components
     var message_parts = message.split('.');
