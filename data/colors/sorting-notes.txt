@@ -1,0 +1,15 @@
+Total number of colors: 80
+
+10 hue groups: R, YR, Y, GY, G, BG, B, PB, P, RP
+-> each hue group X has a 10X and 5X to mark location on hue band
+=> 8 colors per hue group or 4 colors per hue location
+
+Munsell code format: HHHHV/C
+-> H = hue, includes location on hue band (10 or 5) and hue code (R, YR, Y, etc)
+-> V = value, lightness (10) or darkness (0)
+-> C = chroma, purity of color where lower chroma is "less pure" (more washed out, as in pastels)
+
+Implemented to 2 different versions of sorting:
+-> V1: Group all of one hue together regardless of where it is on the hue band (i.e. ignoring whether it's 10X or 5X, and order by value (light to dark)
+--> This seems preferable because it prioritizes sorting by value
+-> V2: Group colors by location on hue band (i.e. all 10R's in order of value THEN all 5R's in order of value, all 10YR's in order of value THEN ALL 5YR's in order of value, etc.)
