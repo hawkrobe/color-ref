@@ -42,24 +42,31 @@ for val in range(10):
     color5 = R5 + val
     for i in range(len(munsell)):
         if i in color10:
-            print(munsell[i])
             sorted_munsell.append(munsell[i])
             sorted_rgb.append(rgb[i])
         if i in color5:
-            print(munsell[i])
             sorted_munsell.append(munsell[i])
             sorted_rgb.append(rgb[i])
 
+# reverse order of each hue section
+ordered_munsell = []
+ordered_rgb = []
+start = 0
+end = 8
+for i in range(10):
+    ordered_munsell += sorted_munsell[start+(8*i):end+(8*i)][::-1]
+    ordered_rgb += sorted_rgb[start+(8*i):end+(8*i)][::-1]
+
 #---------------------------------------------------------------------------------
 # make dataframe with all these columns 
-df = pd.DataFrame({'Munsell':sorted_munsell, 'RGB':sorted_rgb})
+df = pd.DataFrame({'Munsell':ordered_munsell, 'RGB':ordered_rgb})
 
 id = []
 for index, row in df.iterrows():
     id.append(index)
 
 #format for experiment input
-df = pd.DataFrame({'id':id, 'munsell':sorted_munsell, 'rgb':sorted_rgb})
+df = pd.DataFrame({'id':id, 'munsell':ordered_munsell, 'rgb':ordered_rgb})
 print(df)
 
 # save df as csv
@@ -81,12 +88,10 @@ for val in range(10):
     color5 = R5 + val
     for i in range(len(munsell)):
         if i in color10:
-            print(munsell[i])
             sorted_munsell.append(munsell[i])
             sorted_rgb.append(rgb[i])
     for i in range(len(munsell)):
         if i in color5:
-            print(munsell[i])
             sorted_munsell.append(munsell[i])
             sorted_rgb.append(rgb[i])
 
@@ -101,13 +106,13 @@ for index, row in df2.iterrows():
 
 #format for experiment input
 df2 = pd.DataFrame({'id':id, 'munsell':sorted_munsell, 'rgb':sorted_rgb})
-print(df2)
+# print(df2)
 
-# save df as csv
-df2.to_csv('gibson-et-al-RGB-conversions-munsell-sorted-V2.csv', index=False)
+# # save df as csv
+# df2.to_csv('gibson-et-al-RGB-conversions-munsell-sorted-V2.csv', index=False)
 
-# save df as csv
-df2.to_json('munsell-gibson-V2-sorting.json', orient='records')
+# # save df as csv
+# df2.to_json('munsell-gibson-V2-sorting.json', orient='records')
 
 
 

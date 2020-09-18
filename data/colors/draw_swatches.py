@@ -24,7 +24,7 @@ import matplotlib
 # read CSV into dataframe
 
 # process the glasgow norms excel spreadsheet into pandas dataframe
-df = pd.read_csv(r'gibson-et-al-RGB-conversions-munsell-sorted-V2.csv')
+df = pd.read_csv(r'gibson-et-al-RGB-conversions-munsell-sorted-V1.csv')
 sorted_munsell = df['munsell'].to_numpy()
 sorted_rgb = df['rgb'].to_list()
 
@@ -39,8 +39,8 @@ for i, val in enumerate(sorted_rgb):
 #---------------------------------------------------------------------------------
 
 # plot swatches 
-width= 8
-height= 4
+width= 10
+height= 8
 
 fig = plt.figure(figsize=(width, height))
 ax = fig.add_subplot(111)
@@ -57,8 +57,8 @@ w = 1 / x_count
 h = 1 / y_count
 
 for i in range(len(sorted_munsell)):
-    pos = (x / (1.15*x_count), y / y_count)
-    ax.add_patch(patches.Rectangle(pos, w+0.1, h+0.2, color=sorted_rgb[i]))
+    pos = ((0.9*x / x_count), 1.12*(y / y_count))
+    ax.add_patch(patches.Rectangle(pos, w, 1.12*h, color=sorted_rgb[i]))
     ax.annotate(sorted_munsell[i],xy=pos,fontsize=7)
     if y >= y_count-2:
         x += 1
@@ -69,8 +69,8 @@ for i in range(len(sorted_munsell)):
 
 plt.yticks([])
 plt.xticks([])
-plt.savefig('gibson-et-al-swatches-V2-munsell-sorting',bbox_inches='tight',dpi=300)
-# plt.show()
+plt.savefig('gibson-et-al-swatches-V1-munsell-sorting',bbox_inches='tight',dpi=300)
+plt.show()
 
 
 #---------------------------------------------------------------------------------
