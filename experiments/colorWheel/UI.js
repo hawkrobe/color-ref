@@ -1,5 +1,5 @@
 var Confetti = require('./src/confetti.js');
-var munsell = _.cloneDeep(require('./munsell-gibson-V2-sorting.json'));
+var munsell = _.cloneDeep(require('./munsell-gibson-V1-sorting.json'));
 var confetti = new Confetti(300);
 
 // This gets called when someone selects something in the menu during the 
