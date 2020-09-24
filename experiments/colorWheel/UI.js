@@ -63,13 +63,15 @@ function setupListenerHandlers(game) {
 
 function setupSpeakerHandlers(game) {
   $('div.pressable-color').click(function(event) {
-    // Only let listener click once they've heard answer back
-    if(game.messageSent) {
+    if(!game.messageSent) {
+      // Only let listener click once they've heard answer back
       var clickedId = $(this).attr('id');
-      game.sendAnswer(clickedId);
+      console.log($(this));
+      game.messageSent = true;
+      game.socket.send('sendColor.' + clickedId);
       $(this).css({
         'border-color' : '#FFFFFF', 
-        'border-width' : '10px', 
+        'border-width' : '2px', 
         'border-style' : 'solid'
       });
     }
@@ -102,17 +104,16 @@ function initColorGrid(game) {
     var colorDiv = $('<div/>')
         .addClass('pressable-color')
         .addClass('col-3')
-        .attr({'id' : stim.munsellName})
         .css({
           'background' : 'rgb' + stim.rgb,
           'height' : '50px',
-        });
-
+        })
+        .attr({'id' : stim.munsell});
+    console.log(stim);
     blockDiv.append(colorDiv);
 
     // append and reset at end of block of 4 colors
     if(i % 4 == 3) {
-      console.log('final state of block before append', blockDiv);
       $("#color-picker-grid").append($('<div/>').addClass('col-6').append(blockDiv));
       blockDiv = $('<div/>').addClass('row');
     }
@@ -121,6 +122,7 @@ function initColorGrid(game) {
   // Allow listener to click on things
   game.selections = [];
   if (game.my_role === game.playerRoleNames.role1) {
+    console.log('setup handler');
     setupSpeakerHandlers(game);
   }
 }
