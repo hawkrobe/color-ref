@@ -43,16 +43,15 @@ function dropdownTip(data){
 
 function setupListenerHandlers(game) {
   $('div.pressable-text').click(function(event) {
-    // Only let listener click once they've heard answer back
+    // Only let listener click a word once they've heard answer back
     if(game.messageSent) {
       var clickedId = $(this).attr('id');
-      game.sendAnswer(clickedId);
       $(this).css({
         'border-color' : '#FFFFFF', 
         'border-width' : '10px', 
         'border-style' : 'solid'
       });
-      $('#target').css({
+      $('#' + game.target).css({
         'border-color' : '#458B00', 
         'border-width' : '10px', 
         'border-style' : 'solid'
@@ -82,16 +81,22 @@ function initStimGrid(game) {
   // Add objects to grid
   _.forEach(game.context, (word, i) => {
     var div = $('<div/>')
-        .addClass('col h2 pressable-text border rounded-pill bg-light')
+        .addClass('col h2 pressable-text border rounded-pill')
         .append($('<div/>').addClass('box text-center').text(word))
         .attr({'id' : word});
+
+    // Display target to speaker
+    if(word == game.target && game.my_role == game.playerRoleNames.role1) {
+      div.addClass('bg-warning');
+    } else {
+      div.addClass('bg-light');
+    }
     $("#word-grid").append(div);
   });
 
   // Allow listener to click on things
   game.selections = [];
   if (game.my_role === game.playerRoleNames.role2) {
-    console.log('seting up');
     setupListenerHandlers(game);
   }
 }
