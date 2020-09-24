@@ -17,9 +17,9 @@ function updateState (game, data){
 };
 
 var customEvents = function(game) {
+  // when you receive a color, highlight it
   game.socket.on('colorReceived', function(data){
-    console.log('received');
-    console.log(data);
+    game.messageSent = true;
     $('#' + data.id).css({
       'border-color' : '#FFFFFF', 
       'border-width' : '2px', 
