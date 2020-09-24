@@ -96,28 +96,26 @@ function initStimGrid(game) {
 
 // Add objects to grid
 function initColorGrid(game) {
-  // when stim has 'hue' value marking row,
-  // we can organize colors in different rows by
-  // var rows = _.groupBy(munsell, chip => chip.hue)
-  // _.forEach(_.values(rows), row => {
-  //   var rowDiv = $('<div/>').addClass('row')
-  //   _.forEach(row, color => {
-  //     var colorDiv = $('...').addClass('pressable-color').addClass('col')...
-  //     ...
-  //     rowDiv.append(colorDiv)
-  //   })
-  //   $('#color-picker-grid').append(rowDiv)
-  // })
+  // bootstrap only allows subdivisions of 12 columns, so we nest rows to get even grid (i.e. 8 = 2 sets of 4=3/12).
+  let blockDiv = $('<div/>').addClass('row');
   _.forEach(munsell, (stim, i) => {
-    var div = $('<div/>')
+    var colorDiv = $('<div/>')
         .addClass('pressable-color')
-        .addClass('col')
+        .addClass('col-3')
         .attr({'id' : stim.munsellName})
         .css({
           'background' : 'rgb' + stim.rgb,
           'height' : '50px',
         });
-    $("#color-picker-grid").append(div);
+
+    blockDiv.append(colorDiv);
+
+    // append and reset at end of block of 4 colors
+    if(i % 4 == 3) {
+      console.log('final state of block before append', blockDiv);
+      $("#color-picker-grid").append($('<div/>').addClass('col-6').append(blockDiv));
+      blockDiv = $('<div/>').addClass('row');
+    }
   });
   
   // Allow listener to click on things
