@@ -88,18 +88,17 @@ class ServerRefGame extends ServerGame {
     switch(message_type) {
 
   
-    case 'chatMessage' :
-      console.log('received chat message');
+    case 'sendColor' :
+      console.log('sending color');
+      console.log(message_parts);
       if(client.game.playerCount == gc.playersThreshold && !gc.paused) {
-        var msg = message_parts[1].replace(/~~~/g,'.');
-        console.log(msg);
-        _.map(all, p => p.player.instance.emit( 'chatMessage', {
-          user: client.userid, msg: msg
+        _.map(all, p => p.player.instance.emit( 'colorReceived', {
+          user: client.userid, id: message_parts[1]
         }));
       }
       break;
       
-    case 'clickedObj' :
+    case 'sendResponse' :
       _.map(all, p => p.player.instance.emit('updateScore', {
         outcome: message_parts[2]
       }));
