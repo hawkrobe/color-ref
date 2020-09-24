@@ -44,18 +44,12 @@ function dropdownTip(data){
 function setupListenerHandlers(game) {
   $('div.pressable-text').click(function(event) {
     // Only let listener click a word once they've heard answer back
-    if(game.messageSent) {
+    if(game.messageSent & !game.responseSent) {
       var clickedId = $(this).attr('id');
-      $(this).css({
-        'border-color' : '#FFFFFF', 
-        'border-width' : '10px', 
-        'border-style' : 'solid'
-      });
-      $('#' + game.target).css({
-        'border-color' : '#458B00', 
-        'border-width' : '10px', 
-        'border-style' : 'solid'
-      });
+      game.responseSent = true;
+      game.socket.send('sendResponse.' + clickedId);
+      $(this).addClass('bg-dark');
+      $('#' + game.target).addClass('bg-warning');
     }
   });
 }
@@ -140,13 +134,14 @@ function drawScreen (game) {
     $('#waiting').html('');
     confetti.reset();
     initColorGrid(game);
-    initStimGrid(game);
-    
+    initStimGrid(game);    
   }
 };
 
 function reset (game, data) {
   $('#scoreupdate').html(" ");
+  $("#color-picker-grid").html("");
+  $("#word-grid").html("");  
   if(game.trialNum + 1 > game.numTrials) {
     $('#roundnumber').empty();
     $('#instructs').empty()
