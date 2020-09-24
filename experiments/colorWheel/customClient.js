@@ -14,6 +14,8 @@ function updateState (game, data){
   game.blockNum = data.blockNum;
   game.trialNum = data.trialNum;  
   game.roundStartTime = Date.now();
+  game.messageSent = false;
+  game.responseSent = false;
 };
 
 var customEvents = function(game) {
