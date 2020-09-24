@@ -17,12 +17,14 @@ function updateState (game, data){
 };
 
 var customEvents = function(game) {
-  game.sendAnswer = function(id) {
-    game.socket.send('clickedObj.' + id);
-  }; 
-
-  game.socket.on('messageReceived', function(data){
-    $('#messages')
+  game.socket.on('colorReceived', function(data){
+    console.log('received');
+    console.log(data);
+    $('#' + data.id).css({
+      'border-color' : '#FFFFFF', 
+      'border-width' : '2px', 
+      'border-style' : 'solid'
+    });
   });
     
   game.socket.on('newRoundUpdate', function(data){
