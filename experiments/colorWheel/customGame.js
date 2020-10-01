@@ -100,7 +100,7 @@ class ServerRefGame extends ServerGame {
       
     case 'sendResponse' :
       _.map(all, p => p.player.instance.emit('updateScore', {
-        outcome: message_parts[2]
+        outcome: message_parts[1]
       }));
       setTimeout(function() {
         _.map(all, function(p){

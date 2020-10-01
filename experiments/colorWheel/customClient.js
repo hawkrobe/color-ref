@@ -28,7 +28,12 @@ var customEvents = function(game) {
       'border-style' : 'solid'
     });
   });
-    
+
+  game.socket.on('updateScore', function(data){
+    $('#' + data.outcome).addClass('bg-dark');
+    $('#' + game.target).addClass('bg-warning');
+  });
+
   game.socket.on('newRoundUpdate', function(data){
     game.getPlayer(game.my_id).message = "";
     if(data.active) {
