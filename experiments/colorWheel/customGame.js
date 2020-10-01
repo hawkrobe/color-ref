@@ -18,19 +18,7 @@ class ServerRefGame extends ServerGame {
     this.trialList = this.makeTrialList();
   }
 
-  customEvents (socket) {
-    console.log('setting events');
-    socket.on('endRound', function(data) {
-      console.log('round ended...');
-      var all = socket.game.activePlayers();
-      setTimeout(function() {
-        _.map(all, function(p){
-          p.player.instance.emit( 'updateScore', data);
-        });
-       }, 1000);
-      socket.game.newRound(4000);
-    });
-  }
+  customEvents (socket) {}
   
   // *
   // * TrialList creation
