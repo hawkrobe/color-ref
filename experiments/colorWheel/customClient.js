@@ -14,17 +14,26 @@ function updateState (game, data){
   game.blockNum = data.blockNum;
   game.trialNum = data.trialNum;  
   game.roundStartTime = Date.now();
+  game.messageSent = false;
+  game.responseSent = false;
 };
 
 var customEvents = function(game) {
-  game.sendAnswer = function(id) {
-    game.socket.send('clickedObj.' + id);
-  }; 
-
-  game.socket.on('messageReceived', function(data){
-    $('#messages')
+  // when you receive a color, highlight it
+  game.socket.on('colorReceived', function(data){
+    game.messageSent = true;
+    $('#' + data.id).css({
+      'border-color' : '#FFFFFF', 
+      'border-width' : '2px', 
+      'border-style' : 'solid'
+    });
   });
-    
+
+  game.socket.on('updateScore', function(data){
+    $('#' + data.outcome).addClass('bg-dark');
+    $('#' + game.target).addClass('bg-warning');
+  });
+
   game.socket.on('newRoundUpdate', function(data){
     game.getPlayer(game.my_id).message = "";
     if(data.active) {

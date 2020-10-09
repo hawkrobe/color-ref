@@ -18,19 +18,7 @@ class ServerRefGame extends ServerGame {
     this.trialList = this.makeTrialList();
   }
 
-  customEvents (socket) {
-    console.log('setting events');
-    socket.on('endRound', function(data) {
-      console.log('round ended...');
-      var all = socket.game.activePlayers();
-      setTimeout(function() {
-        _.map(all, function(p){
-          p.player.instance.emit( 'updateScore', data);
-        });
-       }, 1000);
-      socket.game.newRound(4000);
-    });
-  }
+  customEvents (socket) {}
   
   // *
   // * TrialList creation
@@ -88,20 +76,19 @@ class ServerRefGame extends ServerGame {
     switch(message_type) {
 
   
-    case 'chatMessage' :
-      console.log('received chat message');
+    case 'sendColor' :
+      console.log('sending color');
+      console.log(message_parts);
       if(client.game.playerCount == gc.playersThreshold && !gc.paused) {
-        var msg = message_parts[1].replace(/~~~/g,'.');
-        console.log(msg);
-        _.map(all, p => p.player.instance.emit( 'chatMessage', {
-          user: client.userid, msg: msg
+        _.map(all, p => p.player.instance.emit( 'colorReceived', {
+          user: client.userid, id: message_parts[1]
         }));
       }
       break;
       
-    case 'clickedObj' :
+    case 'sendResponse' :
       _.map(all, p => p.player.instance.emit('updateScore', {
-        outcome: message_parts[2]
+        outcome: message_parts[1]
       }));
       setTimeout(function() {
         _.map(all, function(p){

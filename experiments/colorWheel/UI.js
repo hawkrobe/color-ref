@@ -43,33 +43,28 @@ function dropdownTip(data){
 
 function setupListenerHandlers(game) {
   $('div.pressable-text').click(function(event) {
-    // Only let listener click once they've heard answer back
-    if(game.messageSent) {
+    // Only let listener click a word once they've heard answer back
+    if(game.messageSent & !game.responseSent) {
       var clickedId = $(this).attr('id');
-      game.sendAnswer(clickedId);
-      $(this).css({
-        'border-color' : '#FFFFFF', 
-        'border-width' : '10px', 
-        'border-style' : 'solid'
-      });
-      $('#target').css({
-        'border-color' : '#458B00', 
-        'border-width' : '10px', 
-        'border-style' : 'solid'
-      });
+      game.responseSent = true;
+      game.socket.send('sendResponse.' + clickedId);
+      $(this).addClass('bg-dark');
+      $('#' + game.target).addClass('bg-warning');
     }
   });
 }
 
 function setupSpeakerHandlers(game) {
   $('div.pressable-color').click(function(event) {
-    // Only let listener click once they've heard answer back
-    if(game.messageSent) {
+    if(!game.messageSent) {
+      // Only let listener click once they've heard answer back
       var clickedId = $(this).attr('id');
-      game.sendAnswer(clickedId);
+      console.log($(this));
+      game.messageSent = true;
+      game.socket.send('sendColor.' + clickedId);
       $(this).css({
         'border-color' : '#FFFFFF', 
-        'border-width' : '10px', 
+        'border-width' : '2px', 
         'border-style' : 'solid'
       });
     }
@@ -80,49 +75,53 @@ function initStimGrid(game) {
   // Add objects to grid
   _.forEach(game.context, (word, i) => {
     var div = $('<div/>')
-        .addClass('col h2 pressable-text border rounded-pill bg-light')
+        .addClass('col h2 pressable-text border rounded-pill')
         .append($('<div/>').addClass('box text-center').text(word))
         .attr({'id' : word});
+
+    // Display target to speaker
+    if(word == game.target && game.my_role == game.playerRoleNames.role1) {
+      div.addClass('bg-warning');
+    } else {
+      div.addClass('bg-light');
+    }
     $("#word-grid").append(div);
   });
 
   // Allow listener to click on things
   game.selections = [];
   if (game.my_role === game.playerRoleNames.role2) {
-    console.log('seting up');
     setupListenerHandlers(game);
   }
 }
 
 // Add objects to grid
 function initColorGrid(game) {
-  // when stim has 'hue' value marking row,
-  // we can organize colors in different rows by
-  // var rows = _.groupBy(munsell, chip => chip.hue)
-  // _.forEach(_.values(rows), row => {
-  //   var rowDiv = $('<div/>').addClass('row')
-  //   _.forEach(row, color => {
-  //     var colorDiv = $('...').addClass('pressable-color').addClass('col')...
-  //     ...
-  //     rowDiv.append(colorDiv)
-  //   })
-  //   $('#color-picker-grid').append(rowDiv)
-  // })
+  // bootstrap only allows subdivisions of 12 columns, so we nest rows to get even grid (i.e. 8 = 2 sets of 4=3/12).
+  let blockDiv = $('<div/>').addClass('row');
   _.forEach(munsell, (stim, i) => {
-    var div = $('<div/>')
+    var colorDiv = $('<div/>')
         .addClass('pressable-color')
-        .addClass('col')
-        .attr({'id' : stim.munsellName})
+        .addClass('col-3')
         .css({
           'background' : 'rgb' + stim.rgb,
           'height' : '50px',
-        });
-    $("#color-picker-grid").append(div);
+        })
+        .attr({'id' : stim.munsell});
+    console.log(stim);
+    blockDiv.append(colorDiv);
+
+    // append and reset at end of block of 4 colors
+    if(i % 4 == 3) {
+      $("#color-picker-grid").append($('<div/>').addClass('col-6').append(blockDiv));
+      blockDiv = $('<div/>').addClass('row');
+    }
   });
   
   // Allow listener to click on things
   game.selections = [];
   if (game.my_role === game.playerRoleNames.role1) {
+    console.log('setup handler');
     setupSpeakerHandlers(game);
   }
 }
@@ -135,13 +134,14 @@ function drawScreen (game) {
     $('#waiting').html('');
     confetti.reset();
     initColorGrid(game);
-    initStimGrid(game);
-    
+    initStimGrid(game);    
   }
 };
 
 function reset (game, data) {
   $('#scoreupdate').html(" ");
+  $("#color-picker-grid").html("");
+  $("#word-grid").html("");  
   if(game.trialNum + 1 > game.numTrials) {
     $('#roundnumber').empty();
     $('#instructs').empty()
