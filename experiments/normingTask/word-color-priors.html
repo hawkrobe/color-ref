@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Word-color association task</title>
+        <script src="jspsych-6.1.0/jspsych.js"></script>
+        <script src="jspsych-6.1.0/plugins/jspsych-html-keyboard-response.js"></script>
+        <script src="jspsych-6.1.0/plugins/jspsych-html-button-response.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+        <link href="jspsych-6.1.0/css/jspsych.css" rel="stylesheet" type="text/css"></link>
+        <style>
+        button {
+          border: none;
+          color: white;
+          padding: 32px 32px;
+          display: inline-block;
+          font-size: 16px;
+        };
+        </style>
+    </head>
+    <body>
+    </body>
+    <script>
+
+    // text of buttons = not needed
+    var strings = Array(16).fill('');
+    // target words
+    var stimuli = ['berry', 'happy', 'tree', 'sky', 'sad', 'love', 'potato', 'squid', 'near', 'orange', 'safe']
+
+    // munsell values for button background colors
+    var munsell = ['(99, 14, 38)', '(137, 34, 17)', '(190, 26, 52)', '(216, 65, 0)',
+    '(239, 107, 106)', '(254, 147, 109)', '(254, 185, 179)', '(245, 225, 219)',
+    '(75, 41, 23)', '(100, 65, 8)', '(146, 80, 27)', '(170, 103, 0)', '(231, 111, 0)',
+    '(244, 150, 0)', '(255, 186, 123)', '(255, 225, 176)']
+
+    var buttons = new Array(16);
+    for(let i=0; i < buttons.length;i++){
+      // DOESNT WORK: MAKES WEBPAGE CRASH
+      // // if this is the beginning of a row
+      // if (i%8==0) {
+      //   str = '<div><button style=\"background-color:rgb' + munsell[i] + '\"></button>';
+      // }
+      // // if this is the last color in a row
+      // else if ((i+1)%8==0) {
+      //   str = '<button style=\"background-color:rgb' + munsell[i] + '\"></button></div>'
+      //
+      // } else {
+      //   str = '<button style=\"background-color:rgb' + munsell[i] + '\"></button>';
+      // }
+
+      str = '<button style=\"background-color:rgb' + munsell[i] + '\"></button>';
+      buttons[i] = str;
+    }
+    console.log(buttons);
+
+    var timeline = [];
+
+    var welcome = {
+        type: 'html-keyboard-response',
+        stimulus: 'Welcome to the experiment. Press any key to begin'
+    };
+
+    timeline.push(welcome);
+
+
+    /* define instructions trial */
+    var instructions = {
+      type: "html-keyboard-response",
+      stimulus: "<p>In this experiment, you will be given a word " +
+          "and a Munsell color space.</p><p>Select the color in the color space that " +
+          "you most closely associate with this word.</p>" +
+          "<p>Please ensure that you are taking this experiment on a desktop or laptop computer <br>" +
+          "and that your screen is set to its default brightness and color temperature (e.g. turn off flux).</p>" +
+          "<p>Press any key to begin.</p>"
+    };
+
+    timeline.push(instructions);
+
+    // TESTING
+    // var trial = {
+    //   type: 'html-button-response',
+    //   stimulus: '<p>Word</p>',
+    //   choices: ['', '', ''],
+    //   margin_horizontal: '0px',
+    //   button_html: ['<button1></button1>', '<button2></button2>', '<button3></button3>']
+    // };
+
+
+
+    for(let i=0; i < stimuli.length;i++){
+      var trial = {
+        type: 'html-button-response',
+        stimulus: stimuli[i],
+        choices: strings,
+        margin_horizontal: '0px',
+        //prompt: 'Select the color you most closely associate with the word.',
+        button_html: buttons
+      };
+
+      timeline.push(trial);
+    }
+
+
+    // DOESN'T WORK
+    //   var div = $('<div/>')
+    //       .addClass('pressable-color')
+    //       .addClass('col')
+    //       .attr({'id' : stim.munsellName})
+    //       .css({
+    //         'background' : 'rgb' + stim.rgb,
+    //         'height' : '50px',
+    //       });
+    //   $("#color-picker-grid").append(div);
+    // });
+    //
+    // var trial = {
+    //   type: 'html-button-response',
+    //   stimulus: '<p>Word</p>',
+    //   choices: ['', '', '', '', ''],
+    //   margin_horizontal: '0px'
+    // };
+    //
+    // function initGrid() {
+    //   //alert("I HAVE BEEN CALLED")
+    //   var test = "<p>this is a line</p>"
+    //   document.write(test)
+    //   // var openLine = "<div name='potato' style='border:5px'>"
+    //   // var body1 = "<span style='background-color:blue'> cell1 </span>"
+    //   // var body2 = "<span style='background-color:orange'> cell2 </span>"
+    //   // var closeLine = "</div>"
+    //   // document.write(openLine)
+    //   // document.write(body1)
+    //   // document.write(body2)
+    //   // document.write(closeLine)
+    //
+    //   // <span style="background-color:blue"> cell1 </span>
+    //   //       <span style="background-color:orange"> cell2 </span>
+    //   //       <span style="background-color:blue"> cell1 </span>
+    //   //       <span style="background-color:orange"> cell2 </span>
+    // }
+    //
+    // timeline.push(trial);
+
+
+    /* start the experiment */
+    jsPsych.init({
+      timeline: timeline,
+      /* execute displayData function when the experiment ends by using the
+      on_finish callback function. this function will automatically execute once
+      all the trials in the experiement are finished */
+      on_finish: function() {
+        jsPsych.data.displayData();
+      }
+    })
+
+    </script>
+
+</html>
