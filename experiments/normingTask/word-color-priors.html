@@ -9,13 +9,16 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
         <link href="jspsych-6.1.0/css/jspsych.css" rel="stylesheet" type="text/css"></link>
         <style>
-        button {
+        .button {
           border: none;
-          color: white;
           padding: 32px 32px;
           display: inline-block;
           font-size: 16px;
-        };
+          transition-duration: 0.6s;
+        }
+        .button:hover {
+          background-color: white;
+        }
         </style>
     </head>
     <body>
@@ -39,7 +42,7 @@
     /* define instructions trial */
     var instructions = {
       type: "html-keyboard-response",
-      stimulus: "<p>To begin with, you will be shown a series of images.</p>" +
+      stimulus: "<p>To begin with, you will be shown a series of images intended to test your color vision.</p>" +
       "<p>For each image, press the key of the number you see in the image. <br>If you are unsure or do not see anything, press the enter key.</p>" +
       "<p>Please ensure that you are taking this experiment on a desktop or laptop computer <br>" +
       "and that your screen is set to its default brightness and color temperature (e.g. turn off flux).</p>" +
@@ -68,7 +71,7 @@
     // NORMING TASK TRIALS
     //--------------------------------------------------------------------------
 
-    /* define instructions trial */
+    /* define instructions trial for target words */
     var instructions = {
       type: "html-keyboard-response",
       stimulus: "<p>In this experiment, you will be given a word " +
@@ -84,7 +87,10 @@
     // text of buttons = not needed
     var strings = Array(16).fill('');
     // target words
-    var stimuli = ['berry', 'happy', 'tree', 'sky', 'sad', 'love', 'potato', 'squid', 'near', 'orange', 'safe']
+    var targets = ['berry', 'happy', 'tree', 'sky', 'sad', 'love', 'potato', 'squid', 'near', 'orange', 'safe']
+
+    // practice words (i.e. color words)
+    var practice = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink']
 
     // munsell values for button background colors
     var munsell = ['(99, 14, 38)', '(137, 34, 17)', '(190, 26, 52)', '(216, 65, 0)',
@@ -107,7 +113,7 @@
       //   str = '<button style=\"background-color:rgb' + munsell[i] + '\"></button>';
       // }
 
-      str = '<button style=\"background-color:rgb' + munsell[i] + '\"></button>';
+      str = '<button class="button" style="background-color:rgb' + munsell[i] + '"></button>';
       buttons[i] = str;
     }
     console.log(buttons);
@@ -121,10 +127,42 @@
     //   button_html: ['<button1></button1>', '<button2></button2>', '<button3></button3>']
     // };
 
-    for(let i=0; i < stimuli.length;i++){
+    var instructions = {
+      type: "html-keyboard-response",
+      stimulus: "<p>The next few practice trials will allow you to get comfortable with the system before the experiment begins.</p>" +
+          "<p><strong>Press any key to begin the practice trials.</strong></p>"
+    };
+
+    timeline.push(instructions);
+
+    // PRACTICE WORD TRIALS
+    for(let i=0; i < practice.length;i++){
       var trial = {
         type: 'html-button-response',
-        stimulus: stimuli[i],
+        stimulus: practice[i],
+        choices: strings,
+        margin_horizontal: '0px',
+        prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
+        button_html: buttons
+      };
+
+      timeline.push(trial);
+    }
+
+    var instructions = {
+      type: "html-keyboard-response",
+      stimulus: "<p>You have completed the practice trials.</p>" +
+          "<p><strong>Press any key to begin the experiment.</strong></p>"
+    };
+
+    timeline.push(instructions);
+
+
+    // TARGET WORD TRIALS
+    for(let i=0; i < targets.length;i++){
+      var trial = {
+        type: 'html-button-response',
+        stimulus: targets[i],
         choices: strings,
         margin_horizontal: '0px',
         prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
