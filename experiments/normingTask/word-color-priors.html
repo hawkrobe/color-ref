@@ -5,6 +5,7 @@
         <script src="jspsych-6.1.0/jspsych.js"></script>
         <script src="jspsych-6.1.0/plugins/jspsych-html-keyboard-response.js"></script>
         <script src="jspsych-6.1.0/plugins/jspsych-html-button-response.js"></script>
+        <script src="jspsych-6.1.0/plugins/jspsych-image-keyboard-response.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
         <link href="jspsych-6.1.0/css/jspsych.css" rel="stylesheet" type="text/css"></link>
         <style>
@@ -20,6 +21,65 @@
     <body>
     </body>
     <script>
+
+    var timeline = [];
+
+
+    var welcome = {
+        type: 'html-keyboard-response',
+        stimulus: 'Welcome to the experiment. <strong>Press any key to begin</strong>'
+    };
+
+    timeline.push(welcome);
+
+    //--------------------------------------------------------------------------
+    // COLORBLINDESS TRIALS
+    //--------------------------------------------------------------------------
+
+    /* define instructions trial */
+    var instructions = {
+      type: "html-keyboard-response",
+      stimulus: "<p>To begin with, you will be shown a series of images.</p>" +
+      "<p>For each image, press the key of the number you see in the image. <br>If you are unsure or do not see anything, press the enter key.</p>" +
+      "<p>Please ensure that you are taking this experiment on a desktop or laptop computer <br>" +
+      "and that your screen is set to its default brightness and color temperature (e.g. turn off flux).</p>" +
+      "<p><strong>Press any key to begin.</strong></p>"
+    };
+
+    timeline.push(instructions);
+
+    // all single-digit vanishing plates from ishihara colorblindness test
+    var ishiharaPlates = ['Plate8.gif', 'Plate10.gif', 'Plate11.gif'];
+
+    for(let i=0; i < ishiharaPlates.length;i++){
+      let str = './ishihara-vanishing-plates/' + ishiharaPlates[i];
+
+      var colorblindness_trial = {
+        type: 'image-keyboard-response',
+        stimulus: str,
+        choices: [13, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57],
+        prompt: "<p>Press the key of the number you see. If you are unsure or do not see anything, press the enter key.</p>"
+      };
+      timeline.push(colorblindness_trial);
+    }
+
+
+    //--------------------------------------------------------------------------
+    // NORMING TASK TRIALS
+    //--------------------------------------------------------------------------
+
+    /* define instructions trial */
+    var instructions = {
+      type: "html-keyboard-response",
+      stimulus: "<p>In this experiment, you will be given a word " +
+          "and a Munsell color space.</p><p>Select the color in the color space that " +
+          "you most closely associate with this word.</p>" +
+          "<p>Please ensure that you are taking this experiment on a desktop or laptop computer <br>" +
+          "and that your screen is set to its default brightness and color temperature (e.g. turn off flux).</p>" +
+          "<p><strong>Press any key to begin.</strong></p>"
+    };
+
+    timeline.push(instructions);
 
     // text of buttons = not needed
     var strings = Array(16).fill('');
@@ -52,29 +112,6 @@
     }
     console.log(buttons);
 
-    var timeline = [];
-
-    var welcome = {
-        type: 'html-keyboard-response',
-        stimulus: 'Welcome to the experiment. Press any key to begin'
-    };
-
-    timeline.push(welcome);
-
-
-    /* define instructions trial */
-    var instructions = {
-      type: "html-keyboard-response",
-      stimulus: "<p>In this experiment, you will be given a word " +
-          "and a Munsell color space.</p><p>Select the color in the color space that " +
-          "you most closely associate with this word.</p>" +
-          "<p>Please ensure that you are taking this experiment on a desktop or laptop computer <br>" +
-          "and that your screen is set to its default brightness and color temperature (e.g. turn off flux).</p>" +
-          "<p>Press any key to begin.</p>"
-    };
-
-    timeline.push(instructions);
-
     // TESTING
     // var trial = {
     //   type: 'html-button-response',
@@ -84,61 +121,18 @@
     //   button_html: ['<button1></button1>', '<button2></button2>', '<button3></button3>']
     // };
 
-
-
     for(let i=0; i < stimuli.length;i++){
       var trial = {
         type: 'html-button-response',
         stimulus: stimuli[i],
         choices: strings,
         margin_horizontal: '0px',
-        //prompt: 'Select the color you most closely associate with the word.',
+        prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
         button_html: buttons
       };
 
       timeline.push(trial);
     }
-
-
-    // DOESN'T WORK
-    //   var div = $('<div/>')
-    //       .addClass('pressable-color')
-    //       .addClass('col')
-    //       .attr({'id' : stim.munsellName})
-    //       .css({
-    //         'background' : 'rgb' + stim.rgb,
-    //         'height' : '50px',
-    //       });
-    //   $("#color-picker-grid").append(div);
-    // });
-    //
-    // var trial = {
-    //   type: 'html-button-response',
-    //   stimulus: '<p>Word</p>',
-    //   choices: ['', '', '', '', ''],
-    //   margin_horizontal: '0px'
-    // };
-    //
-    // function initGrid() {
-    //   //alert("I HAVE BEEN CALLED")
-    //   var test = "<p>this is a line</p>"
-    //   document.write(test)
-    //   // var openLine = "<div name='potato' style='border:5px'>"
-    //   // var body1 = "<span style='background-color:blue'> cell1 </span>"
-    //   // var body2 = "<span style='background-color:orange'> cell2 </span>"
-    //   // var closeLine = "</div>"
-    //   // document.write(openLine)
-    //   // document.write(body1)
-    //   // document.write(body2)
-    //   // document.write(closeLine)
-    //
-    //   // <span style="background-color:blue"> cell1 </span>
-    //   //       <span style="background-color:orange"> cell2 </span>
-    //   //       <span style="background-color:blue"> cell1 </span>
-    //   //       <span style="background-color:orange"> cell2 </span>
-    // }
-    //
-    // timeline.push(trial);
 
 
     /* start the experiment */
