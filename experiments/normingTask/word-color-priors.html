@@ -62,7 +62,7 @@
     timeline.push(instructions);
 
     // all single-digit vanishing plates from ishihara colorblindness test
-    var ishiharaPlates = ['Plate8.gif', 'Plate10.gif', 'Plate11.gif'];
+    var ishiharaPlates = ['Plate2.gif', 'Plate4.gif', 'Plate5.gif'];
 
     for(let i=0; i < ishiharaPlates.length;i++){
       let str = './ishihara-vanishing-plates/' + ishiharaPlates[i];
@@ -110,33 +110,26 @@
     // text of buttons = not needed
     var strings = Array(munsell.length).fill('');
     // target words
-    var targets = ['berry', 'happy', 'tree', 'sky', 'sad', 'love', 'potato', 'squid', 'near', 'orange', 'safe']
+    var targets = ['berry', 'happy', 'tree', 'sky', 'sad', 'love', 'potato', 'squid', 'near', 'orange', 'safe'];
 
     // practice words (i.e. color words)
-    var practice = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink']
-
-    // munsell values imported from munsell.js
-    // var munsell = ['(99, 14, 38)', '(137, 34, 17)', '(190, 26, 52)', '(216, 65, 0)',
-    // '(239, 107, 106)', '(254, 147, 109)', '(254, 185, 179)', '(245, 225, 219)',
-    // '(75, 41, 23)', '(100, 65, 8)', '(146, 80, 27)', '(170, 103, 0)', '(231, 111, 0)',
-    // '(244, 150, 0)', '(255, 186, 123)', '(255, 225, 176)']
+    var practice = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
 
     var buttons = new Array(munsell.length);
     for(let i=0; i < munsell.length;i++){
-      // DOESNT WORK: MAKES WEBPAGE CRASH
-      // // if this is the beginning of a row
-      // if (i%8==0) {
-      //   str = '<div><button style=\"background-color:rgb' + munsell[i] + '\"></button>';
-      // }
-      // // if this is the last color in a row
-      // else if ((i+1)%8==0) {
-      //   str = '<button style=\"background-color:rgb' + munsell[i] + '\"></button></div>'
-      //
-      // } else {
-      //   str = '<button style=\"background-color:rgb' + munsell[i] + '\"></button>';
-      // }
+      // if this is the beginning of a row
+      if (i%8==0) {
+        str = '<section><div><button style=\"background-color:rgb' + munsell[i].rgb + '\"></button>';
+      }
+      // if this is the last color in a row
+      else if ((i+1)%8==0) {
+        str = '<button style=\"background-color:rgb' + munsell[i].rgb + '\"></button>'
 
-      str = '<button class="fade" style="background-color:rgb' + munsell[i].rgb + '"></button>';
+      } else {
+        str = '<button style=\"background-color:rgb' + munsell[i].rgb + '\"></button>';
+      }
+
+      //str = '<button class="fade" style="background-color:rgb' + munsell[i].rgb + '"></button>';
       buttons[i] = str;
     }
     console.log(buttons);
