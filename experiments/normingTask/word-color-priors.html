@@ -15,10 +15,10 @@
           display: inline-block;
           font-size: 16px;
           transition-duration: 0.6s;
-        }
+        };
         .button:hover {
-          background-color: white;
-        }
+          opacity: 0.6
+        };
         </style>
     </head>
     <body>
@@ -143,6 +143,7 @@
         choices: strings,
         margin_horizontal: '0px',
         prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
+        post_trial_gap: 500,
         button_html: buttons
       };
 
@@ -166,6 +167,7 @@
         choices: strings,
         margin_horizontal: '0px',
         prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
+        post_trial_gap: 500,
         button_html: buttons
       };
 
