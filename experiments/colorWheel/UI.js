@@ -2,17 +2,17 @@ var Confetti = require('./src/confetti.js');
 var munsell = _.cloneDeep(require('./munsell-gibson-V1-sorting.json'));
 var confetti = new Confetti(300);
 
-// This gets called when someone selects something in the menu during the 
+// This gets called when someone selects something in the menu during the
 // exit survey... collects data from drop-down menus and submits using mmturkey
 function dropdownTip(data){
   var commands = data.split('::');
   switch(commands[0]) {
   case 'human' :
     $('#humanResult').show();
-    globalGame.data = _.extend(globalGame.data, 
+    globalGame.data = _.extend(globalGame.data,
                                {'thinksHuman' : commands[1]}); break;
   case 'language' :
-    globalGame.data = _.extend(globalGame.data, 
+    globalGame.data = _.extend(globalGame.data,
                                {'nativeEnglish' : commands[1]}); break;
   case 'partner' :
     globalGame.data = _.extend(globalGame.data,
@@ -21,7 +21,7 @@ function dropdownTip(data){
     globalGame.data = _.extend(globalGame.data,
                                {'confused' : commands[1]}); break;
   case 'submit' :
-    globalGame.data = _.extend(globalGame.data, 
+    globalGame.data = _.extend(globalGame.data,
                                {'comments' : $('#comments').val(),
                                 'strategy' : $('#strategy').val(),
                                 'role' : globalGame.my_role,
@@ -32,7 +32,7 @@ function dropdownTip(data){
     if(_.size(globalGame.urlParams) >= 4) {
       globalGame.socket.send("exitSurvey." + JSON.stringify(globalGame.data));
       window.opener.turk.submit(globalGame.data, true);
-      window.close(); 
+      window.close();
     } else {
       console.log("would have submitted the following :")
       console.log(globalGame.data);
@@ -63,8 +63,8 @@ function setupSpeakerHandlers(game) {
       game.messageSent = true;
       game.socket.send('sendColor.' + clickedId);
       $(this).css({
-        'border-color' : '#FFFFFF', 
-        'border-width' : '2px', 
+        'border-color' : '#FFFFFF',
+        'border-width' : '2px',
         'border-style' : 'solid'
       });
     }
@@ -73,7 +73,7 @@ function setupSpeakerHandlers(game) {
 
 function initStimGrid(game) {
   // Add objects to grid
-  _.forEach(game.context, (word, i) => {
+  _.forEach(_.shuffle(game.context), (word, i) => {
     var div = $('<div/>')
         .addClass('col h2 pressable-text border rounded-pill')
         .append($('<div/>').addClass('box text-center').text(word))
@@ -117,7 +117,7 @@ function initColorGrid(game) {
       blockDiv = $('<div/>').addClass('row');
     }
   });
-  
+
   // Allow listener to click on things
   game.selections = [];
   if (game.my_role === game.playerRoleNames.role1) {
@@ -134,14 +134,14 @@ function drawScreen (game) {
     $('#waiting').html('');
     confetti.reset();
     initColorGrid(game);
-    initStimGrid(game);    
+    initStimGrid(game);
   }
 };
 
 function reset (game, data) {
   $('#scoreupdate').html(" ");
   $("#color-picker-grid").html("");
-  $("#word-grid").html("");  
+  $("#word-grid").html("");
   if(game.trialNum + 1 > game.numTrials) {
     $('#roundnumber').empty();
     $('#instructs').empty()
@@ -164,7 +164,7 @@ function reset (game, data) {
               "<p>can help you complete the highlighted combo!</p>");
   } else if(game.my_role === game.playerRoleNames.role2) {
     $('#instructs')
-      .append("<p>After your partner types their question, </p>" 
+      .append("<p>After your partner types their question, </p>"
               + "<p>pick a color!</p>");
   }
   drawScreen(game);
