@@ -4,7 +4,7 @@
         <title>Word-color association task</title>
         <script src="jspsych-6.1.0/jspsych.js"></script>
         <script src="jspsych-6.1.0/plugins/jspsych-html-keyboard-response.js"></script>
-        <script src="jspsych-6.1.0/plugins/jspsych-html-button-response.js"></script>
+        <script src="jspsych-6.1.0/plugins/jspsych-color-picker.js"></script>
         <script src="jspsych-6.1.0/plugins/jspsych-image-keyboard-response.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
         <script src="https://code.jquery.com/jquery-3.5.0.js"></script>
@@ -114,35 +114,6 @@
 
     // practice words (i.e. color words)
     var practice = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
-
-    var buttons = new Array(munsell.length);
-    for(let i=0; i < munsell.length;i++){
-      // if this is the beginning of a row
-      if (i%8==0) {
-        str = '<section><div><button style=\"background-color:rgb' + munsell[i].rgb + '\"></button>';
-      }
-      // if this is the last color in a row
-      else if ((i+1)%8==0) {
-        str = '<button style=\"background-color:rgb' + munsell[i].rgb + '\"></button>'
-
-      } else {
-        str = '<button style=\"background-color:rgb' + munsell[i].rgb + '\"></button>';
-      }
-
-      //str = '<button class="fade" style="background-color:rgb' + munsell[i].rgb + '"></button>';
-      buttons[i] = str;
-    }
-    console.log(buttons);
-
-    // TESTING
-    // var trial = {
-    //   type: 'html-button-response',
-    //   stimulus: '<p>Word</p>',
-    //   choices: ['', '', ''],
-    //   margin_horizontal: '0px',
-    //   button_html: ['<button1></button1>', '<button2></button2>', '<button3></button3>']
-    // };
-
     var instructions = {
       type: "html-keyboard-response",
       stimulus: "<p>The next few practice trials will allow you to get comfortable with the system before the experiment begins.</p>" +
@@ -154,15 +125,17 @@
     // PRACTICE WORD TRIALS
     for(let i=0; i < practice.length;i++){
       var trial = {
-        type: 'html-button-response',
+        type: 'color-picker',
         stimulus: practice[i],
-        choices: strings,
-        margin_horizontal: '0px',
+        colors: munsell,
+        margin_horizontal: '3px',
+        margin_vertical: '0px',
+        height: '30px',
+        width: '30px',        
         prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
-        post_trial_gap: 500,
-        button_html: buttons
+        post_trial_gap: 500
       };
-
+      console.log(trial)
       timeline.push(trial);
     }
 
@@ -178,15 +151,16 @@
     // TARGET WORD TRIALS
     for(let i=0; i < targets.length;i++){
       var trial = {
-        type: 'html-button-response',
+        type: 'color-picker',
         stimulus: targets[i],
-        choices: strings,
-        margin_horizontal: '0px',
+        colors: munsell,
+        margin_horizontal: '3px',
+        margin_vertical: '0px',        
+        height: '30px',
+        width: '30px',        
         prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
-        post_trial_gap: 500,
-        button_html: buttons
+        post_trial_gap: 500
       };
-
       timeline.push(trial);
     }
 
