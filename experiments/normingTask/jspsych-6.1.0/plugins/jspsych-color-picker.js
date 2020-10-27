@@ -86,17 +86,17 @@ jsPsych.plugins["color-picker"] = (function() {
     var html = '<div id="jspsych-html-button-response-stimulus">'+trial.stimulus+'</div>';
     for (var i = 0; i < trial.colors.length; i++) {
       var color = trial.colors[i];
-      if (i%8==0) {
+      if (i%11==0) {
         html += '<div class="btn-group">';
       }
 
       html += '<div class="jspsych-html-button-response-button" style="display: inline-block; height: '+trial.height+ '; width: ' + trial.width + '; background-color: rgb' + color.rgb + '; margin:'+trial.margin_vertical+' '+trial.margin_horizontal+'" id="jspsych-html-button-response-button-' + i +'" data-choice="'+i+'"></div>';
-      
-      if ((i+1)%8==0) {
+
+      if ((i+1)%11==0) {
         html += '</div>';
       }
     }
-    
+
     //show prompt if there is one
     if (trial.prompt !== null) {
       html += trial.prompt;

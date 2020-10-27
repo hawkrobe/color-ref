@@ -11,7 +11,7 @@ from collections import defaultdict
 from colormath.color_conversions import convert_color
 from colormath.color_objects import LabColor, LCHabColor, SpectralColor, sRGBColor, XYZColor, LCHuvColor, IPTColor, HSVColor
 from mpl_toolkits.mplot3d import axes3d, Axes3D
-from statistics import mean 
+from statistics import mean
 #---------------------------------------------------------------------------------
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -38,7 +38,7 @@ for i, val in enumerate(sorted_rgb):
 
 #---------------------------------------------------------------------------------
 
-# plot swatches 
+# plot swatches
 width= 10
 height= 8
 
@@ -65,7 +65,7 @@ for i in range(len(sorted_munsell)):
         y = 0
     else:
         y += 1
-        
+
 
 plt.yticks([])
 plt.xticks([])
@@ -84,7 +84,7 @@ plt.show()
 #     c = (float(c[0])/255, float(c[1])/255, float(c[2])/255)
 #     # create RGB object
 #     c = sRGBColor(c[0], c[1], c[2])
-#     # convert RGB to HSV for sorting 
+#     # convert RGB to HSV for sorting
 #     hsv = convert_color(c, HSVColor)
 #     # get HSV values from object
 #     hsv = hsv.get_value_tuple()
