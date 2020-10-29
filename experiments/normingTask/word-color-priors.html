@@ -4,8 +4,10 @@
         <title>Word-color association task</title>
         <script src="jspsych-6.1.0/jspsych.js"></script>
         <script src="jspsych-6.1.0/plugins/jspsych-html-keyboard-response.js"></script>
+        <script src="jspsych-6.1.0/plugins/jspsych-html-button-response.js"></script>
         <script src="jspsych-6.1.0/plugins/jspsych-color-picker.js"></script>
         <script src="jspsych-6.1.0/plugins/jspsych-image-keyboard-response.js"></script>
+        <script src="jspsych-6.1.0/plugins/jspsych-survey-html-form.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
         <script src="https://code.jquery.com/jquery-3.5.0.js"></script>
         <script src="munsell.js"></script>
@@ -81,19 +83,6 @@
     // NORMING TASK TRIALS
     //--------------------------------------------------------------------------
 
-    $( "button" ).hover(
-      function() {
-        $( this ).append( $( "<span> ***</span>" ) );
-      }, function() {
-        $( this ).find( "span" ).last().remove();
-      }
-    );
-
-    $( "button.fade" ).hover(function() {
-      $( this ).fadeOut( 100 );
-      $( this ).fadeIn( 500 );
-    });
-
     /* define instructions trial for target words */
     var instructions = {
       type: "html-keyboard-response",
@@ -126,12 +115,12 @@
     for(let i=0; i < practice.length;i++){
       var trial = {
         type: 'color-picker',
-        stimulus: practice[i],
+        stimulus: '<p>' + practice[i] + '</p>',
         colors: munsell,
-        margin_horizontal: '3px',
-        margin_vertical: '0px',
-        height: '30px',
-        width: '30px',        
+        margin_horizontal: '0px',
+        margin_vertical: '-4px',
+        height: '70px',
+        width: '70px',
         prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
         post_trial_gap: 500
       };
@@ -152,17 +141,49 @@
     for(let i=0; i < targets.length;i++){
       var trial = {
         type: 'color-picker',
-        stimulus: targets[i],
+        stimulus: '<p>' + targets[i] + '</p>',
         colors: munsell,
-        margin_horizontal: '3px',
-        margin_vertical: '0px',        
-        height: '30px',
-        width: '30px',        
+        margin_horizontal: '0px',
+        margin_vertical: '-4px',
+        height: '70px',
+        width: '70px',
         prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
         post_trial_gap: 500
       };
       timeline.push(trial);
     }
+
+    // ENDING SURVEY TRIAL
+    var survey = {
+      type: 'survey-html-form',
+      preamble: '<p><b>Please complete the following required questions:</b> </p>',
+      html: '<p><div>With which gender do you most identify?</div>'+
+      '<div><input type="radio" id="genderChoice1" name="gender" value="male" required><label for="genderChoice1">Male</label></div>'+
+      '<div><input type="radio" id="genderChoice2" name="gender" value="female"><label for="genderChoice2">Female</label></div>' +
+      '<div><input type="radio" id="genderChoice3" name="gender" value="nonconforming"><label for="genderChoice3">Gender Variant/Non-Conforming</label></div>' +
+      '<div><input type="radio" id="genderChoice4" name="gender" value="abstain"><label for="genderChoice4">Prefer not to answer</label></div></p>' +
+      '<p><div><label for="age">Enter your age:</label></div><div><input type="text" id="age" name="age" required></div></p>' +
+      '<p><div> Did you understand the instructions?</div>'+
+      '<div><input type="radio" id="understoodChoice1" name="understood" value="yes" required><label for="understoodChoice1">Yes</label></div>'+
+      '<div><input type="radio" id="understoodChoice2" name="understood" value="no"><label for="understoodChoice2">No</label></div></p>' +
+      '<p><div><label for="language">What languages are you proficient in?</label></div><div><input type="text" id="language" name="language" required></div></p>' +
+      '<p><div> Were there any words that you did not know?</div>'+
+      '<div><input type="radio" id="wordsChoice1" name="words" value="yes" required><label for="wordsChoice1">Yes</label></div>'+
+      '<div><input type="radio" id="wordsChoice2" name="words" value="no"><label for="wordsChoice2">No</label></div>' +
+      '<div><label for="wordsText">If yes, enter them here:</label></div><div><input type="text" id="wordsText" name="wordsText"></div></p>' +
+      '<p><div><label for="comments">Comments or suggestions?</label></div><div><input type="text" id="comments" name="comments"></div></p>'
+    };
+
+    timeline.push(survey);
+
+    var endScreen = {
+      type: 'html-button-response',
+      stimulus: '<p>You have completed the experiment. Thank you for your participation.</p>' +
+      '<p><strong>Click the button to submit the HIT.</strong></p>',
+      choices: ['Submit HIT']
+    };
+
+    timeline.push(endScreen);
 
 
     /* start the experiment */
