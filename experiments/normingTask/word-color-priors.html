@@ -214,27 +214,35 @@
     // TARGET WORD TRIALS
     for(let i=0; i < test.length;i++){
       var trial = {
-        type: 'color-picker',
-        stimulus: '<p>' + test[i] + '</p>',
-        colors: munsell,
-        margin_horizontal: '0px',
-        margin_vertical: '-4px',
-        height: '70px',
-        width: '70px',
-        prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
-        post_trial_gap: 500,
         timeline: [
-          {type: 'html-slider-response',
-          stimulus: '<p>'+ test[i] +'</p>',
-          labels: ['<p style="color:black"><strong>weakly</strong><br>(most people will <br>have a different color <br>association than I do)</p>',
-           '<font style="color:black"><strong>neutral</strong><br> (roughly the same number <br>of people will have the <br>same or different color <br>associations as I do)</font>',
-           '<font style="color:black"><strong>strongly</strong><br>(most people will <br>have the same color <br>association as I do)</font>'],
-          prompt: '<br> <br><p>How strongly do you expect <strong>others</strong> to share your color association for this word?</p>',
-          buttom_label: 'Next',
-          min: 1,
-          max: 5,
-          start: 3,
-          require_movements: true}
+          {
+            type: 'color-picker',
+            stimulus: '<p>' + test[i] + '</p>',
+            colors: munsell,
+            margin_horizontal: '0px',
+            margin_vertical: '-4px',
+            height: '70px',
+            width: '70px',
+            prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
+            post_trial_gap: 500
+          }, {
+            type: 'html-slider-response',
+            stimulus: function() {
+              var lastTrialColor = jsPsych.data.get().last(1).values()[0].button_pressed;
+              var color = munsell[lastTrialColor].rgb
+              console.log(color)
+              return '<div style="height: 100px;width:100%;display: table;background-color: rgb' + color + ';"><h2 style="color: transparent;background: inherit;-webkit-background-clip: text;height: 100%;filter: invert(1) grayscale(1) contrast(100);">'+test[i] +'</h2></div>'
+            },
+            labels: ['<p style="color:black"><strong>weakly</strong><br>(most people will <br>have a different color <br>association than I do)</p>',
+                     '<font style="color:black"><strong>neutral</strong><br> (roughly the same number <br>of people will have the <br>same or different color <br>associations as I do)</font>',
+                     '<font style="color:black"><strong>strongly</strong><br>(most people will <br>have the same color <br>association as I do)</font>'],
+            prompt: '<br> <br><p>How strongly do you expect <strong>others</strong> to share your color association for this word?</p>',
+            buttom_label: 'Next',
+            min: 1,
+            max: 5,
+            start: 3,
+            require_movements: true
+          }
         ]
       };
       timeline.push(trial);
