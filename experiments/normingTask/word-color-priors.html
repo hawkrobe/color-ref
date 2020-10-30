@@ -11,6 +11,7 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
         <script src="https://code.jquery.com/jquery-3.5.0.js"></script>
         <script src="munsell.js"></script>
+        <script src="target-words.js"></script>
         <link href="jspsych-6.1.0/css/jspsych.css" rel="stylesheet" type="text/css"></link>
         <style>
         button {
@@ -29,9 +30,9 @@
     </body>
     <script>
 
-    //--------------------------------------------------------------------------
+    //==========================================================================
     // START EXPERIMENT
-    //--------------------------------------------------------------------------
+    //==========================================================================
 
     // for(let i=0; i < munsell.length; i++){
     //   console.log(munsell[i].rgb);
@@ -47,9 +48,9 @@
 
     timeline.push(welcome);
 
-    //--------------------------------------------------------------------------
+    //==========================================================================
     // COLORBLINDESS TRIALS
-    //--------------------------------------------------------------------------
+    //==========================================================================
 
     /* define instructions trial */
     var instructions = {
@@ -79,9 +80,9 @@
     }
 
 
-    //--------------------------------------------------------------------------
-    // NORMING TASK TRIALS
-    //--------------------------------------------------------------------------
+    //==========================================================================
+    // NORMING TASK
+    //==========================================================================
 
     /* define instructions trial for target words */
     var instructions = {
@@ -96,13 +97,10 @@
 
     timeline.push(instructions);
 
-    // text of buttons = not needed
-    var strings = Array(munsell.length).fill('');
-    // target words
-    var targets = ['berry', 'happy', 'tree', 'sky', 'sad', 'love', 'potato', 'squid', 'near', 'orange', 'safe'];
+    //--------------------------------------------------------------------------
+    // PRACTICE WORD TRIALS
+    //--------------------------------------------------------------------------
 
-    // practice words (i.e. color words)
-    var practice = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
     var instructions = {
       type: "html-keyboard-response",
       stimulus: "<p>The next few practice trials will allow you to get comfortable with the system before the experiment begins.</p>" +
@@ -111,7 +109,9 @@
 
     timeline.push(instructions);
 
-    // PRACTICE WORD TRIALS
+    // practice words (i.e. color words)
+    var practice = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
+
     for(let i=0; i < practice.length;i++){
       var trial = {
         type: 'color-picker',
@@ -136,12 +136,20 @@
 
     timeline.push(instructions);
 
+    //--------------------------------------------------------------------------
+    // TARGET WORDS PART I: PARTICIPANT PROVIDES INDIVIDUAL JUDGEMENTS
+    // NEED TO CHANGE WORD SET FOR EACH NEW EXPERIMENT
+    //--------------------------------------------------------------------------
+
+    // randomize array of target words
+    var shuffledTargets = jsPsych.randomization.repeat(wordSet2, 1);
+    console.log(shuffledTargets)
 
     // TARGET WORD TRIALS
-    for(let i=0; i < targets.length;i++){
+    for(let i=0; i < shuffledTargets.length;i++){
       var trial = {
         type: 'color-picker',
-        stimulus: '<p>' + targets[i] + '</p>',
+        stimulus: '<p>' + shuffledTargets[i].word + '</p>',
         colors: munsell,
         margin_horizontal: '0px',
         margin_vertical: '-4px',
@@ -152,6 +160,37 @@
       };
       timeline.push(trial);
     }
+
+    //--------------------------------------------------------------------------
+    // TARGET WORDS PART II: Make new judgement for same words and rate expected agreement
+    // NEED TO CHANGE WORD SET FOR EACH NEW EXPERIMENT
+    //--------------------------------------------------------------------------
+
+    // randomize array of target words
+    var shuffledTargets = jsPsych.randomization.repeat(wordSet2, 1);
+    console.log(shuffledTargets)
+
+    // TARGET WORD TRIALS
+    for(let i=0; i < shuffledTargets.length;i++){
+      var trial = {
+        type: 'color-picker',
+        stimulus: '<p>' + shuffledTargets[i].word + '</p>',
+        colors: munsell,
+        margin_horizontal: '0px',
+        margin_vertical: '-4px',
+        height: '70px',
+        width: '70px',
+        prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
+        post_trial_gap: 500
+      };
+      timeline.push(trial);
+    }
+
+
+    //==========================================================================
+    // EXIT SURVEY
+    //==========================================================================
+
 
     // ENDING SURVEY TRIAL
     var survey = {
@@ -185,7 +224,7 @@
 
     timeline.push(endScreen);
 
-
+    //==========================================================================
     /* start the experiment */
     jsPsych.init({
       timeline: timeline,
