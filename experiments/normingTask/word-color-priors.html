@@ -201,7 +201,7 @@
               var lastTrialColor = jsPsych.data.get().last(1).values()[0].button_pressed;
               var color = munsell[lastTrialColor].rgb
               console.log(color)
-              return '<div style="height: 100px;width:100%;display: table;background-color: rgb' + color + ';"><h2 style="color: transparent;background: inherit;-webkit-background-clip: text;height: 100%;filter: invert(1) grayscale(1) contrast(100);">'+test[i] +'</h2></div>'
+              return '<div style="height: 100px;width:100%;display: table;background-color: rgb' + color + ';"><h2 style="color: transparent;background: inherit;-webkit-background-clip: text;height: 100%;filter: invert(1) grayscale(1) contrast(100);">'+ shuffledTargets[i].word +'</h2></div>'
             },
             labels: ['<p style="color:black"><strong>weakly</strong><br>(most people will <br>have a different color <br>association than I do)</p>',
                      '<font style="color:black"><strong>neutral</strong><br> (roughly the same number <br>of people will have the <br>same or different color <br>associations as I do)</font>',
