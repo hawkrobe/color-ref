@@ -68,17 +68,17 @@
     // all single-digit vanishing plates from ishihara colorblindness test
     var ishiharaPlates = ['Plate2.gif', 'Plate4.gif', 'Plate5.gif'];
 
-    // for(let i=0; i < ishiharaPlates.length;i++){
-    //   let str = './ishihara-vanishing-plates/' + ishiharaPlates[i];
-    //
-    //   var colorblindness_trial = {
-    //     type: 'image-keyboard-response',
-    //     stimulus: str,
-    //     choices: [13, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57],
-    //     prompt: "<p>Press the key of the number you see. If you are unsure or do not see anything, press the enter key.</p>"
-    //   };
-    //   timeline.push(colorblindness_trial);
-    // }
+    for(let i=0; i < ishiharaPlates.length;i++){
+      let str = './ishihara-vanishing-plates/' + ishiharaPlates[i];
+
+      var colorblindness_trial = {
+        type: 'image-keyboard-response',
+        stimulus: str,
+        choices: [13, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57],
+        prompt: "<p>Press the key of the number you see. If you are unsure or do not see anything, press the enter key.</p>"
+      };
+      timeline.push(colorblindness_trial);
+    }
 
 
     //==========================================================================
@@ -113,21 +113,21 @@
     // practice words (i.e. color words)
     var practice = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
 
-    // for(let i=0; i < practice.length;i++){
-    //   var trial = {
-    //     type: 'color-picker',
-    //     stimulus: '<p>' + practice[i] + '</p>',
-    //     colors: munsell,
-    //     margin_horizontal: '0px',
-    //     margin_vertical: '-4px',
-    //     height: '70px',
-    //     width: '70px',
-    //     prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
-    //     post_trial_gap: 500
-    //   };
-    //   console.log(trial)
-    //   timeline.push(trial);
-    // }
+    for(let i=0; i < practice.length;i++){
+      var trial = {
+        type: 'color-picker',
+        stimulus: '<p>' + practice[i] + '</p>',
+        colors: munsell,
+        margin_horizontal: '0px',
+        margin_vertical: '-4px',
+        height: '70px',
+        width: '70px',
+        prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
+        post_trial_gap: 500
+      };
+      console.log(trial)
+      timeline.push(trial);
+    }
 
     var instructions = {
       type: "html-keyboard-response",
@@ -142,25 +142,25 @@
     // NEED TO CHANGE WORD SET FOR EACH NEW EXPERIMENT
     //--------------------------------------------------------------------------
 
-    // // randomize array of target words
-    // var shuffledTargets = jsPsych.randomization.repeat(wordSet2, 1);
-    // console.log(shuffledTargets)
-    //
-    // // TARGET WORD TRIALS
-    // for(let i=0; i < shuffledTargets.length;i++){
-    //   var trial = {
-    //     type: 'color-picker',
-    //     stimulus: '<p>' + shuffledTargets[i].word + '</p>',
-    //     colors: munsell,
-    //     margin_horizontal: '0px',
-    //     margin_vertical: '-4px',
-    //     height: '70px',
-    //     width: '70px',
-    //     prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
-    //     post_trial_gap: 500
-    //   };
-    //   timeline.push(trial);
-    // }
+    // randomize array of target words
+    var shuffledTargets = jsPsych.randomization.repeat(wordSet2, 1);
+    console.log(shuffledTargets)
+
+    // TARGET WORD TRIALS
+    for(let i=0; i < shuffledTargets.length;i++){
+      var trial = {
+        type: 'color-picker',
+        stimulus: '<p>' + shuffledTargets[i].word + '</p>',
+        colors: munsell,
+        margin_horizontal: '0px',
+        margin_vertical: '-4px',
+        height: '70px',
+        width: '70px',
+        prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
+        post_trial_gap: 500
+      };
+      timeline.push(trial);
+    }
 
     //--------------------------------------------------------------------------
     // TARGET WORDS PART II: Make new judgement for same words and rate expected agreement
@@ -177,47 +177,17 @@
 
     timeline.push(instructions);
 
-    // // randomize array of target words
-    // var shuffledTargets = jsPsych.randomization.repeat(wordSet2, 1);
-    // console.log(shuffledTargets)
-
-    var test = ['hello', 'my', 'name', 'is'];
-
-    // for(let i=0; i < test.length;i++){
-    //   var trial = {
-    //     type: 'html-slider-response',
-    //     stimulus: '<p>'+ test[i] +'</p>',
-    //     labels: ['<p style="color:black"><strong>weakly</strong><br>(most people will <br>have a different color <br>association than I do)</p>',
-    //      '<font style="color:black"><strong>neutral</strong><br> (roughly the same number <br>of people will have the <br>same or different color <br>associations as I do)</font>',
-    //      '<font style="color:black"><strong>strongly</strong><br>(most people will <br>have the same color <br>association as I do)</font>'],
-    //     prompt: '<br> <br><p>How strongly do you expect <strong>others</strong> to share your color association for this word?</p>',
-    //     buttom_label: 'Next',
-    //     min: 1,
-    //     max: 5,
-    //     start: 3,
-    //     require_movements: true,
-    //     // timeline: [
-    //     //   {type: 'color-picker',
-    //     //   stimulus: '<p>' + test[i] + '</p>',
-    //     //   colors: munsell,
-    //     //   margin_horizontal: '0px',
-    //     //   margin_vertical: '-4px',
-    //     //   height: '70px',
-    //     //   width: '70px',
-    //     //   prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
-    //     //   post_trial_gap: 500}
-    //     // ]
-    //   };
-    //   timeline.push(trial);
-    // };
+    // randomize array of target words
+    var shuffledTargets = jsPsych.randomization.repeat(wordSet2, 1);
+    console.log(shuffledTargets)
 
     // TARGET WORD TRIALS
-    for(let i=0; i < test.length;i++){
+    for(let i=0; i < shuffledTargets.length;i++){
       var trial = {
         timeline: [
           {
             type: 'color-picker',
-            stimulus: '<p>' + test[i] + '</p>',
+            stimulus: '<p>' + shuffledTargets[i].word + '</p>',
             colors: munsell,
             margin_horizontal: '0px',
             margin_vertical: '-4px',
