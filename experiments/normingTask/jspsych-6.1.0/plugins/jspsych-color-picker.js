@@ -86,7 +86,12 @@ jsPsych.plugins["color-picker"] = (function() {
     var html = '<div id="jspsych-html-button-response-stimulus">'+trial.stimulus+'</div>';
     for (var i = 0; i < trial.colors.length; i++) {
       var color = trial.colors[i];
-      if (i%11==0) {
+      var row = Math.floor(i/11);
+      var col = i % 11;
+      console.log(row, col);
+      if (col == 0 && row % 2 == 0) {
+        html += '<div class="btn-group" style="margin-left:80px">';
+      } else if (col == 0 && row % 2 == 0){
         html += '<div class="btn-group">';
       }
 
@@ -108,12 +113,21 @@ jsPsych.plugins["color-picker"] = (function() {
 
     // add event listeners to buttons
     for (var i = 0; i < trial.colors.length; i++) {
-      display_element.querySelector('#jspsych-html-button-response-button-' + i).addEventListener('click', function(e){
-        var choice = e.currentTarget.getAttribute('data-choice'); // don't use dataset for jsdom compatibility
-        after_response(choice);
-      });
+      display_element
+        .querySelector('#jspsych-html-button-response-button-' + i)
+        .addEventListener('click', function(e){
+          var choice = e.currentTarget.getAttribute('data-choice'); 
+          after_response(choice);
+        });
     }
 
+    // add effect on hover
+    $('.jspsych-html-button-response-button')
+      .hover(
+        function() { $(this).addClass("btn-hover"); },
+        function() { $(this).removeClass("btn-hover"); }
+      );
+    
     // store response
     var response = {
       rt: null,

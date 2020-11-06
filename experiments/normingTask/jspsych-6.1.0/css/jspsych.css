@@ -55,6 +55,8 @@
   font-size: 14px;
 }
 
+.btn-hover { outline: 4px solid #000; }
+
 /* borrowing Bootstrap style for btn elements, but combining styles a bit */
 .jspsych-btn {
   display: inline-block;
