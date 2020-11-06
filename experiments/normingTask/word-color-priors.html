@@ -11,6 +11,7 @@
         <script src="jspsych-6.1.0/plugins/jspsych-html-slider-response.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
         <script src="https://code.jquery.com/jquery-3.5.0.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lodash@4.17.10/lodash.min.js"></script>
         <script src="munsell.js"></script>
         <script src="target-words.js"></script>
         <link href="jspsych-6.1.0/css/jspsych.css" rel="stylesheet" type="text/css"></link>
@@ -114,20 +115,23 @@
     var practice = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
     // var practice = ['red', 'blue'];
     var shuffledPractice = jsPsych.randomization.repeat(practice, 1);
+      
+    var color_picker_template = {
+        type: 'color-picker',
+        colors: munsell,
+        margin_horizontal: '4px',
+        margin_vertical: '0px',
+        height: '50px',
+        width: '80px',
+        prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
+        post_trial_gap: 500
+      };
 
     for(let i=0; i < practice.length;i++) {
       if (shuffledPractice[i] == 'red') {
-        var catch_trial1 = {
-          type: 'color-picker',
-          stimulus: '<p>red</p>',
-          colors: munsell,
-          margin_horizontal: '0px',
-          margin_vertical: '-4px',
-          height: '70px',
-          width: '70px',
-          prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
-          post_trial_gap: 500
-        };
+        var catch_trial1 = _.extend({}, color_picker_template, {
+          stimulus: '<p>red</p>'
+        })
 
         var catch_failed_node = {
           timeline: [{
@@ -168,17 +172,9 @@
         timeline.push(catch_failed_node);
 
       } else if (shuffledPractice[i] == 'blue') {
-        var catch_trial2 = {
-          type: 'color-picker',
-          stimulus: '<p>blue</p>',
-          colors: munsell,
-          margin_horizontal: '0px',
-          margin_vertical: '-4px',
-          height: '70px',
-          width: '70px',
-          prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
-          post_trial_gap: 500
-        };
+        var catch_trial2 = _.extend({}, color_picker_template, {
+          stimulus: '<p>blue</p>'
+        });
 
         var catch_failed_node = {
           timeline: [{
@@ -219,17 +215,9 @@
         timeline.push(catch_failed_node);
 
       } else {
-        var trial = {
-          type: 'color-picker',
-          stimulus: '<p>' + shuffledPractice[i] + '</p>',
-          colors: munsell,
-          margin_horizontal: '0px',
-          margin_vertical: '-4px',
-          height: '70px',
-          width: '70px',
-          prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
-          post_trial_gap: 500
-        };
+        var trial = _.extend({}, color_picker_template, {
+          stimulus: '<p>' + shuffledPractice[i] + '</p>'
+        });
         timeline.push(trial);
       };
     };
@@ -263,17 +251,9 @@
     for(let i=0; i < shuffledTargets.length;i++){
       // CATCH TRIAL
       if (shuffledTargets[i] == 'blue') {
-        var catch_trial2 = {
-          type: 'color-picker',
-          stimulus: '<p>blue</p>',
-          colors: munsell,
-          margin_horizontal: '0px',
-          margin_vertical: '-4px',
-          height: '70px',
-          width: '70px',
-          prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
-          post_trial_gap: 500
-        };
+        var catch_trial2 = _.extend({}, color_picker_template, {
+          stimulus: '<p>blue</p>'
+        });
 
         var catch_failed_node = {
           timeline: [{
@@ -316,17 +296,9 @@
       }
       // NORMAL TARGET WORD TRIALS
       else {
-        var trial = {
-          type: 'color-picker',
+        var trial = _.extend({}, color_picker_template, {
           stimulus: '<p>' + shuffledTargets[i].word + '</p>',
-          colors: munsell,
-          margin_horizontal: '0px',
-          margin_vertical: '-4px',
-          height: '70px',
-          width: '70px',
-          prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
-          post_trial_gap: 500
-        };
+        });
 
         // DETECT SAME RESPONSES
         var catch_same_responses = {
@@ -407,17 +379,9 @@
     for(let i=0; i < shuffledTargets.length;i++){
       // CATCH TRIAL
       if (shuffledTargets[i] == 'red') {
-        var catch_trial1 = {
-          type: 'color-picker',
-          stimulus: '<p>red</p>',
-          colors: munsell,
-          margin_horizontal: '0px',
-          margin_vertical: '-4px',
-          height: '70px',
-          width: '70px',
-          prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
-          post_trial_gap: 500
-        };
+        var catch_trial1 = _.extend({}, color_picker_template, {
+          stimulus: '<p>red</p>'
+        });
 
         var catch_failed_node = {
           timeline: [{
@@ -463,17 +427,9 @@
       else {
         var trial = {
           timeline: [
-            {
-              type: 'color-picker',
+            _.extend({}, color_picker_template, {
               stimulus: '<p>' + shuffledTargets[i].word + '</p>',
-              colors: munsell,
-              margin_horizontal: '0px',
-              margin_vertical: '-4px',
-              height: '70px',
-              width: '70px',
-              prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
-              post_trial_gap: 500
-            }, {
+            }), {
               type: 'html-slider-response',
               stimulus: function() {
                 var lastTrialColor = jsPsych.data.get().last(1).values()[0].button_pressed;
