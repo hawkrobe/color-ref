@@ -130,7 +130,7 @@
     for(let i=0; i < practice.length;i++) {
       if (shuffledPractice[i] == 'red') {
         var catch_trial1 = _.extend({}, color_picker_template, {
-          stimulus: '<p>red</p>'
+          stimulus: '<h2>red</h2>'
         })
 
         var catch_failed_node = {
@@ -173,7 +173,7 @@
 
       } else if (shuffledPractice[i] == 'blue') {
         var catch_trial2 = _.extend({}, color_picker_template, {
-          stimulus: '<p>blue</p>'
+          stimulus: '<h2>blue</h2>'
         });
 
         var catch_failed_node = {
@@ -216,7 +216,7 @@
 
       } else {
         var trial = _.extend({}, color_picker_template, {
-          stimulus: '<p>' + shuffledPractice[i] + '</p>'
+          stimulus: '<h2>' + shuffledPractice[i] + '</h2>'
         });
         timeline.push(trial);
       };
@@ -252,7 +252,7 @@
       // CATCH TRIAL
       if (shuffledTargets[i] == 'blue') {
         var catch_trial2 = _.extend({}, color_picker_template, {
-          stimulus: '<p>blue</p>'
+          stimulus: '<h2>blue</h2>'
         });
 
         var catch_failed_node = {
@@ -297,7 +297,7 @@
       // NORMAL TARGET WORD TRIALS
       else {
         var trial = _.extend({}, color_picker_template, {
-          stimulus: '<p>' + shuffledTargets[i].word + '</p>',
+          stimulus: '<h2>' + shuffledTargets[i].word + '</h2>',
         });
 
         // DETECT SAME RESPONSES
@@ -380,7 +380,7 @@
       // CATCH TRIAL
       if (shuffledTargets[i] == 'red') {
         var catch_trial1 = _.extend({}, color_picker_template, {
-          stimulus: '<p>red</p>'
+          stimulus: '<h2>red</h2>'
         });
 
         var catch_failed_node = {
@@ -428,7 +428,7 @@
         var trial = {
           timeline: [
             _.extend({}, color_picker_template, {
-              stimulus: '<p>' + shuffledTargets[i].word + '</p>',
+              stimulus: '<h2>' + shuffledTargets[i].word + '</h2>',
             }), {
               type: 'html-slider-response',
               stimulus: function() {
