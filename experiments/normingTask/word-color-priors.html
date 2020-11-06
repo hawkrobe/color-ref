@@ -549,21 +549,25 @@
     var survey = {
       type: 'survey-html-form',
       preamble: '<p><b>Please complete the following required questions:</b> </p>',
-      html: '<p><div>With which gender do you most identify?</div>'+
-      '<div><input type="radio" id="genderChoice1" name="gender" value="male" required><label for="genderChoice1">Male</label></div>'+
-      '<div><input type="radio" id="genderChoice2" name="gender" value="female"><label for="genderChoice2">Female</label></div>' +
-      '<div><input type="radio" id="genderChoice3" name="gender" value="nonconforming"><label for="genderChoice3">Gender Variant/Non-Conforming</label></div>' +
-      '<div><input type="radio" id="genderChoice4" name="gender" value="abstain"><label for="genderChoice4">Prefer not to answer</label></div></p>' +
-      '<p><div><label for="age">Enter your age:</label></div><div><input type="text" id="age" name="age" required></div></p>' +
-      '<p><div> Did you understand the instructions?</div>'+
-      '<div><input type="radio" id="understoodChoice1" name="understood" value="yes" required><label for="understoodChoice1">Yes</label></div>'+
-      '<div><input type="radio" id="understoodChoice2" name="understood" value="no"><label for="understoodChoice2">No</label></div></p>' +
-      '<p><div><label for="language">What languages are you proficient in?</label></div><div><input type="text" id="language" name="language" required></div></p>' +
-      '<p><div> Were there any words that you did not know?</div>'+
-      '<div><input type="radio" id="wordsChoice1" name="words" value="yes" required><label for="wordsChoice1">Yes</label></div>'+
-      '<div><input type="radio" id="wordsChoice2" name="words" value="no"><label for="wordsChoice2">No</label></div>' +
-      '<div><label for="wordsText">If yes, enter them here:</label></div><div><input type="text" id="wordsText" name="wordsText"></div></p>' +
-      '<p><div><label for="comments">Comments or suggestions?</label></div><div><input type="text" id="comments" name="comments"></div></p>'
+      html: '<p><div style="margin-left:0%;text-align: left">Which gender do you most identify with?</div>'+
+      '<div style="margin-left:0%;text-align: left"><input type="radio" id="genderChoice1" name="gender" value="male"><label for="genderChoice1">Male</label></div>'+
+      '<div style="margin-left:0%;text-align: left"><input type="radio" id="genderChoice2" name="gender" value="female"><label for="genderChoice2">Female</label></div>' +
+      '<div style="margin-left:0%;text-align: left"><input type="radio" id="genderChoice3" name="gender" value="nonconforming"><label for="genderChoice3">Gender Variant/Non-Conforming</label></div>' +
+      '<div style="margin-left:0%;text-align: left"><input type="radio" id="genderChoice4" name="gender" value="abstain" required><label for="genderChoice4">Prefer not to answer</label></div></p>' +
+      '<p><div style="margin-left:0%;text-align: left"><label for="age">Enter your age:</label></div>'+
+      '<div style="margin-left:0%;text-align: left"><input type="text" id="age" name="age" required></div></p>' +
+      '<p><div style="margin-left:0%;text-align: left"> Did you understand the instructions?</div>'+
+      '<div style="margin-left:0%;text-align: left"><input type="radio" id="understoodChoice1" name="understood" value="yes" required><label for="understoodChoice1">Yes</label></div>'+
+      '<div style="margin-left:0%;text-align: left"><input type="radio" id="understoodChoice2" name="understood" value="no"><label for="understoodChoice2">No</label></div></p>' +
+      '<p><div style="margin-left:0%;text-align: left"><label for="language">What languages are you proficient in?</label></div>'+
+      '<div style="margin-left:0%;text-align: left"><input type="text" id="language" name="language" required></div></p>' +
+      '<p><div style="margin-left:0%;text-align: left"> Were there any words that you did not know?</div>'+
+      '<div style="margin-left:0%;text-align: left"><input type="radio" id="wordsChoice1" name="words" value="yes"><label for="wordsChoice1">Yes</label></div>'+
+      '<div style="margin-left:0%;text-align: left"><input type="radio" id="wordsChoice2" name="words" value="no" required><label for="wordsChoice2">No</label></div>' +
+      '<div style="margin-left:0%;text-align: left"><label for="wordsText">If yes, enter them here:</label></div>'+
+      '<div style="margin-left:0%;text-align: left"><input type="text" id="wordsText" name="wordsText"></div></p>' +
+      '<p><div style="margin-left:0%;text-align: left"><label for="comments">Comments or suggestions?</label></div>'+
+      '<div style="margin-left:0%;text-align: left"><input type="text" id="comments" name="comments"></div></p>'
     };
 
     timeline.push(survey);
@@ -573,6 +577,9 @@
       stimulus: '<p>You have completed the experiment. Thank you for your participation.</p>' +
       '<p><strong>Click the button to submit the HIT.</strong></p>',
       choices: ['Submit HIT']
+      // on_finish: function() {
+      //   jsPsych.turk.submitToTurk({'bonus': '0'});
+      // }
     };
 
     timeline.push(endScreen);
