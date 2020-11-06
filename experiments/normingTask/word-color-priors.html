@@ -287,11 +287,11 @@
             // get the data from the previous trial,
             // and check which key was pressed
             var resp = jsPsych.data.get().last(1).values()[0].button_pressed;
-            console.log(resp);
             // iterate over all valid responses
             for(let i=0; i < valid_responses_blue.length;i++){
               // if the current valid response equals the button pressed, return false
               if(valid_responses_blue[i] == resp) {
+                console.log("catch trial response was valid");
                 return false;
                 // isNotValidResponse = false;
               } else {
@@ -300,6 +300,7 @@
             };
             // if the function hasn't returned at this point, the response was NOT valid
             // so return true to execute this timeline function
+            console.log("catch trial response was NOT valid");
             return true;
           },
           on_finish: function() {
@@ -380,11 +381,11 @@
             // get the data from the previous trial,
             // and check which key was pressed
             var resp = jsPsych.data.get().last(1).values()[0].button_pressed;
-            console.log(resp);
             // iterate over all valid responses
             for(let i=0; i < valid_responses_red.length;i++){
               // if the current valid response equals the button pressed, return false
               if(valid_responses_red[i] == resp) {
+                console.log("catch trial response was valid");
                 return false;
                 // isNotValidResponse = false;
               } else {
@@ -393,6 +394,7 @@
             };
             // if the function hasn't returned at this point, the response was NOT valid
             // so return true to execute this timeline function
+            console.log("catch trial response was NOT valid");
             return true;
           },
           on_finish: function() {
@@ -485,6 +487,7 @@
     /* start the experiment */
     jsPsych.init({
       timeline: timeline,
+      show_progress_bar: true,
       /* execute displayData function when the experiment ends by using the
       on_finish callback function. this function will automatically execute once
       all the trials in the experiement are finished */
