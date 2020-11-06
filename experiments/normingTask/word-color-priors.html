@@ -35,10 +35,6 @@
     // START EXPERIMENT
     //==========================================================================
 
-    // for(let i=0; i < munsell.length; i++){
-    //   console.log(munsell[i].rgb);
-    // };
-
     var timeline = [];
 
 
@@ -68,17 +64,17 @@
     // all single-digit vanishing plates from ishihara colorblindness test
     var ishiharaPlates = ['Plate2.gif', 'Plate4.gif', 'Plate5.gif'];
 
-    // for(let i=0; i < ishiharaPlates.length;i++){
-    //   let str = './ishihara-vanishing-plates/' + ishiharaPlates[i];
-    //
-    //   var colorblindness_trial = {
-    //     type: 'image-keyboard-response',
-    //     stimulus: str,
-    //     choices: [13, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57],
-    //     prompt: "<p>Press the key of the number you see. If you are unsure or do not see anything, press the enter key.</p>"
-    //   };
-    //   timeline.push(colorblindness_trial);
-    // }
+    for(let i=0; i < ishiharaPlates.length;i++){
+      let str = './ishihara-vanishing-plates/' + ishiharaPlates[i];
+
+      var colorblindness_trial = {
+        type: 'image-keyboard-response',
+        stimulus: str,
+        choices: [13, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57],
+        prompt: "<p>Press the key of the number you see. If you are unsure or do not see anything, press the enter key.</p>"
+      };
+      timeline.push(colorblindness_trial);
+    }
 
 
     //==========================================================================
@@ -115,8 +111,8 @@
     timeline.push(instructions);
 
     // practice words (i.e. color words)
-    // var practice = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
-    var practice = ['red', 'blue'];
+    var practice = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
+    // var practice = ['red', 'blue'];
     var shuffledPractice = jsPsych.randomization.repeat(practice, 1);
 
     for(let i=0; i < practice.length;i++) {
@@ -257,7 +253,12 @@
     // randomize array of target words + catch trial word
     var shuffledTargets = jsPsych.randomization.repeat(wordSet2.concat(blue), 1);
     console.log(shuffledTargets)
-    
+
+    // store responses to off ramp participants who click same color more than 3 times in a row
+    var previousResponse = -1;
+    var currentResponse;
+    var same = 0;
+
     // TARGET WORD TRIALS
     for(let i=0; i < shuffledTargets.length;i++){
       // CATCH TRIAL
@@ -326,7 +327,53 @@
           prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
           post_trial_gap: 500
         };
+
+        // DETECT SAME RESPONSES
+        var catch_same_responses = {
+          timeline: [{
+            type: 'html-button-response',
+            stimulus: '<p style="color:red">We have detected anomalies in your responses that indicate you were not responding carefully.</p>' +
+            '<p><strong>Please click the button to terminate and submit the HIT.</strong></p><p>You will still be paid the base pay for participating.</p>',
+            choices: ['End experiment']
+          }],
+          // If the conditional function evaluates to true (3 same responses in a row), the timeline will execute normally.
+          // If the conditional function evaluates to false (different responses), then the timeline will be skipped.
+          conditional_function: function(){
+            // store this response as current
+            currentResponse = jsPsych.data.get().last(1).values()[0].button_pressed;
+            // if this is the first response store it as previous as well
+            if (previousResponse == -1) {
+              previousResponse = jsPsych.data.get().last(1).values()[0].button_pressed;
+            }
+
+            // if current response equals previous, update counter
+            if (currentResponse == previousResponse) {
+              same++;
+            } else {
+              same = 0;
+            }
+
+            // update previous to current
+            previousResponse = currentResponse;
+
+            // if this is the third same response in a row
+            if (same == 3) {
+              // execute this trial (off-ramp participant)
+              return true;
+            } else {
+              // DO NOT execute this trial
+              return false;
+            }
+          },
+          on_finish: function() {
+            jsPsych.endExperiment();
+            // jsPsych.turk.submitToTurk({'bonus': '0'});
+          }
+        };
+
+        // push trial and catch_same_responses to timeline
         timeline.push(trial);
+        timeline.push(catch_same_responses);
       };
     };
 
@@ -352,7 +399,11 @@
     var shuffledTargets = jsPsych.randomization.repeat(wordSet2.concat(red), 1);
     console.log(shuffledTargets)
 
-    // TARGET WORD TRIALS
+    // store responses to off ramp participants who click same color more than 3 times in a row
+    var previousResponse = -1;
+    var currentResponse;
+    var same = 0;
+
     for(let i=0; i < shuffledTargets.length;i++){
       // CATCH TRIAL
       if (shuffledTargets[i] == 'red') {
@@ -407,7 +458,9 @@
         timeline.push(catch_trial1);
         timeline.push(catch_failed_node);
 
-      } else {
+      }
+      // TARGET WORD TRIALS
+      else {
         var trial = {
           timeline: [
             {
@@ -437,11 +490,55 @@
             }
           ]
         };
+
+        // DETECT SAME RESPONSES
+        var catch_same_responses = {
+          timeline: [{
+            type: 'html-button-response',
+            stimulus: '<p style="color:red">We have detected anomalies in your responses that indicate you were not responding carefully.</p>' +
+            '<p><strong>Please click the button to terminate and submit the HIT.</strong></p><p>You will still be paid the base pay for participating.</p>',
+            choices: ['End experiment']
+          }],
+          // If the conditional function evaluates to true (3 same responses in a row), the timeline will execute normally.
+          // If the conditional function evaluates to false (different responses), then the timeline will be skipped.
+          conditional_function: function(){
+            // store this response as current
+            currentResponse = jsPsych.data.get().last(1).values()[0].button_pressed;
+            // if this is the first response store it as previous as well
+            if (previousResponse == -1) {
+              previousResponse = jsPsych.data.get().last(1).values()[0].button_pressed;
+            }
+
+            // if current response equals previous, update counter
+            if (currentResponse == previousResponse) {
+              same++;
+            } else {
+              same = 0;
+            }
+
+            // update previous to current
+            previousResponse = currentResponse;
+
+            // if this is the third same response in a row
+            if (same == 3) {
+              // execute this trial (off-ramp participant)
+              return true;
+            } else {
+              // DO NOT execute this trial
+              return false;
+            }
+          },
+          on_finish: function() {
+            jsPsych.endExperiment();
+            // jsPsych.turk.submitToTurk({'bonus': '0'});
+          }
+        };
+
+        // push trial and catch_same_responses to timeline
         timeline.push(trial);
+        timeline.push(catch_same_responses);
       };
-
     };
-
 
     //==========================================================================
     // EXIT SURVEY
@@ -479,6 +576,8 @@
     };
 
     timeline.push(endScreen);
+
+    console.log(timeline);
 
     //==========================================================================
     /* start the experiment */
