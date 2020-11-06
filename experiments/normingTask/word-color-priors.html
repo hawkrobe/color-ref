@@ -257,7 +257,7 @@
     // randomize array of target words + catch trial word
     var shuffledTargets = jsPsych.randomization.repeat(wordSet2.concat(blue), 1);
     console.log(shuffledTargets)
-
+    
     // TARGET WORD TRIALS
     for(let i=0; i < shuffledTargets.length;i++){
       // CATCH TRIAL
@@ -428,14 +428,11 @@
                 console.log(color)
                 return '<div style="height: 100px;width:100%;display: table;background-color: rgb' + color + ';"><h2 style="color: transparent;background: inherit;-webkit-background-clip: text;height: 100%;filter: invert(1) grayscale(1) contrast(100);">'+ shuffledTargets[i].word +'</h2></div>'
               },
-              labels: ['<p style="color:black"><strong>weakly</strong><br>(most people will <br>have a different color <br>association than I do)</p>',
-                       '<font style="color:black"><strong>neutral</strong><br> (roughly the same number <br>of people will have the <br>same or different color <br>associations as I do)</font>',
-                       '<font style="color:black"><strong>strongly</strong><br>(most people will <br>have the same color <br>association as I do)</font>'],
-              prompt: '<br> <br><p>How strongly do you expect <strong>others</strong> to share your color association for this word?</p>',
-              buttom_label: 'Next',
-              min: 1,
-              max: 5,
-              start: 3,
+              labels: ['<p style="color:black"><strong>0%<br>(no one)</strong></p>',
+                       '<p style="color:black"><strong>50%<br>(about half)</strong></p>',
+                       '<p style="color:black"><strong>100%<br>(everyone)</strong></p>'],
+              prompt: '<br> <br><p>What percentage of <strong>other people</strong> do you expect to share your color association for this word?</p>',
+              button_label: 'Next',
               require_movements: true
             }
           ]
