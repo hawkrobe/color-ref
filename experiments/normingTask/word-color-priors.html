@@ -351,42 +351,97 @@
     var shuffledTargets = jsPsych.randomization.repeat(wordSet2.concat(red), 1);
     console.log(shuffledTargets)
 
-    // // TARGET WORD TRIALS
-    // for(let i=0; i < shuffledTargets.length;i++){
-    //   var trial = {
-    //     timeline: [
-    //       {
-    //         type: 'color-picker',
-    //         stimulus: '<p>' + shuffledTargets[i].word + '</p>',
-    //         colors: munsell,
-    //         margin_horizontal: '0px',
-    //         margin_vertical: '-4px',
-    //         height: '70px',
-    //         width: '70px',
-    //         prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
-    //         post_trial_gap: 500
-    //       }, {
-    //         type: 'html-slider-response',
-    //         stimulus: function() {
-    //           var lastTrialColor = jsPsych.data.get().last(1).values()[0].button_pressed;
-    //           var color = munsell[lastTrialColor].rgb
-    //           console.log(color)
-    //           return '<div style="height: 100px;width:100%;display: table;background-color: rgb' + color + ';"><h2 style="color: transparent;background: inherit;-webkit-background-clip: text;height: 100%;filter: invert(1) grayscale(1) contrast(100);">'+ shuffledTargets[i].word +'</h2></div>'
-    //         },
-    //         labels: ['<p style="color:black"><strong>weakly</strong><br>(most people will <br>have a different color <br>association than I do)</p>',
-    //                  '<font style="color:black"><strong>neutral</strong><br> (roughly the same number <br>of people will have the <br>same or different color <br>associations as I do)</font>',
-    //                  '<font style="color:black"><strong>strongly</strong><br>(most people will <br>have the same color <br>association as I do)</font>'],
-    //         prompt: '<br> <br><p>How strongly do you expect <strong>others</strong> to share your color association for this word?</p>',
-    //         buttom_label: 'Next',
-    //         min: 1,
-    //         max: 5,
-    //         start: 3,
-    //         require_movements: true
-    //       }
-    //     ]
-    //   };
-    //   timeline.push(trial);
-    // };
+    // TARGET WORD TRIALS
+    for(let i=0; i < shuffledTargets.length;i++){
+      // CATCH TRIAL
+      if (shuffledTargets[i] == 'red') {
+        var catch_trial1 = {
+          type: 'color-picker',
+          stimulus: '<p>red</p>',
+          colors: munsell,
+          margin_horizontal: '0px',
+          margin_vertical: '-4px',
+          height: '70px',
+          width: '70px',
+          prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
+          post_trial_gap: 500
+        };
+
+        var catch_failed_node = {
+          timeline: [{
+            type: 'html-button-response',
+            stimulus: '<p style="color:red">We have detected anomalies in your responses that indicate you were not responding carefully.</p>' +
+            '<p><strong>Please click the button to terminate and submit the HIT.</strong></p><p>You will still be paid the base pay for participating.</p>',
+            choices: ['End experiment']
+          }],
+          // If the conditional function evaluates to true (response is NOT valid), the timeline will execute normally.
+          // If the conditional function evaluates to false (response IS valid), then the timeline will be skipped.
+          conditional_function: function(){
+            // get the data from the previous trial,
+            // and check which key was pressed
+            var resp = jsPsych.data.get().last(1).values()[0].button_pressed;
+            console.log(resp);
+            // iterate over all valid responses
+            for(let i=0; i < valid_responses_red.length;i++){
+              // if the current valid response equals the button pressed, return false
+              if(valid_responses_red[i] == resp) {
+                return false;
+                // isNotValidResponse = false;
+              } else {
+                continue;
+              };
+            };
+            // if the function hasn't returned at this point, the response was NOT valid
+            // so return true to execute this timeline function
+            return true;
+          },
+          on_finish: function() {
+            jsPsych.endExperiment();
+            // jsPsych.turk.submitToTurk({'bonus': '0'});
+          }
+        };
+
+        // push catch trial and catch_failed_node to timeline
+        timeline.push(catch_trial1);
+        timeline.push(catch_failed_node);
+
+      } else {
+        var trial = {
+          timeline: [
+            {
+              type: 'color-picker',
+              stimulus: '<p>' + shuffledTargets[i].word + '</p>',
+              colors: munsell,
+              margin_horizontal: '0px',
+              margin_vertical: '-4px',
+              height: '70px',
+              width: '70px',
+              prompt: '<p><font size="3">Select the color you most closely associate with the word.</font></p>',
+              post_trial_gap: 500
+            }, {
+              type: 'html-slider-response',
+              stimulus: function() {
+                var lastTrialColor = jsPsych.data.get().last(1).values()[0].button_pressed;
+                var color = munsell[lastTrialColor].rgb
+                console.log(color)
+                return '<div style="height: 100px;width:100%;display: table;background-color: rgb' + color + ';"><h2 style="color: transparent;background: inherit;-webkit-background-clip: text;height: 100%;filter: invert(1) grayscale(1) contrast(100);">'+ shuffledTargets[i].word +'</h2></div>'
+              },
+              labels: ['<p style="color:black"><strong>weakly</strong><br>(most people will <br>have a different color <br>association than I do)</p>',
+                       '<font style="color:black"><strong>neutral</strong><br> (roughly the same number <br>of people will have the <br>same or different color <br>associations as I do)</font>',
+                       '<font style="color:black"><strong>strongly</strong><br>(most people will <br>have the same color <br>association as I do)</font>'],
+              prompt: '<br> <br><p>How strongly do you expect <strong>others</strong> to share your color association for this word?</p>',
+              buttom_label: 'Next',
+              min: 1,
+              max: 5,
+              start: 3,
+              require_movements: true
+            }
+          ]
+        };
+        timeline.push(trial);
+      };
+
+    };
 
 
     //==========================================================================
