@@ -397,8 +397,8 @@
               // update previous to current
               previousResponse = currentResponse;
 
-              // if this is the third same response in a row
-              if (same == 3) {
+              // if this is the 10th same response in a row
+              if (same == 10) {
                 // execute this trial (off-ramp participant)
                 return true;
               } else {
@@ -521,53 +521,9 @@
             ]
           };
 
-          // DETECT SAME RESPONSES
-          var catch_same_responses = {
-            timeline: [{
-              type: 'html-button-response',
-              stimulus: '<p style="color:red">We have detected anomalies in your responses that indicate you were not responding carefully.</p>' +
-              '<p><strong>Please click the button to terminate and submit the HIT.</strong></p><p>You will still be paid the base pay for participating.</p>',
-              choices: ['End experiment'],
-              data: {'condition' : 'catch_same_responses'}
-            }],
-            // If the conditional function evaluates to true (3 same responses in a row), the timeline will execute normally.
-            // If the conditional function evaluates to false (different responses), then the timeline will be skipped.
-            conditional_function: function(){
-              // store this response as current
-              currentResponse = jsPsych.data.get().last(1).values()[0].button_pressed;
-              // if this is the first response store it as previous as well
-              if (previousResponse == -1) {
-                previousResponse = jsPsych.data.get().last(1).values()[0].button_pressed;
-              }
-
-              // if current response equals previous, update counter
-              if (currentResponse == previousResponse) {
-                same++;
-              } else {
-                same = 0;
-              }
-
-              // update previous to current
-              previousResponse = currentResponse;
-
-              // if this is the third same response in a row
-              if (same == 3) {
-                // execute this trial (off-ramp participant)
-                return true;
-              } else {
-                // DO NOT execute this trial
-                return false;
-              }
-            },
-            on_finish: function() {
-              //jsPsych.endExperiment();
-              jsPsych.turk.submitToTurk({'bonus': '0'});
-            }
-          };
 
           // push trial and catch_same_responses to timeline
           timeline.push(trial);
-          timeline.push(catch_same_responses);
         };
       };
 
