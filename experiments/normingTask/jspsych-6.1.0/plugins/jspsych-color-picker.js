@@ -16,9 +16,9 @@ jsPsych.plugins["color-picker"] = (function() {
     name: 'color-picker',
     description: '',
     parameters: {
-      stimulus: {
+      word: {
         type: jsPsych.plugins.parameterType.HTML_STRING,
-        pretty_name: 'Stimulus',
+        pretty_name: 'Word',
         default: undefined,
         description: 'The HTML string to be displayed'
       },
@@ -83,7 +83,7 @@ jsPsych.plugins["color-picker"] = (function() {
   plugin.trial = function(display_element, trial) {
 
     // display stimulus
-    var html = '<div id="jspsych-html-button-response-stimulus">'+trial.stimulus+'</div>';
+    var html = '<div id="jspsych-html-button-response-stimulus"><h2>'+trial.word+'</h2></div>';
     for (var i = 0; i < trial.colors.length; i++) {
       var color = trial.colors[i];
       var row = Math.floor(i/11);
@@ -166,10 +166,15 @@ jsPsych.plugins["color-picker"] = (function() {
       jsPsych.pluginAPI.clearAllTimeouts();
 
       // gather the data to store for the trial
+      var rgbArray = trial.colors[_.toInteger(response.button)].rgb.slice(1,-1).split(', ');
       var trial_data = {
         "rt": response.rt,
-        "stimulus": trial.stimulus,
-        "button_pressed": response.button
+        "word": trial.word,
+        "button_pressed": response.button,
+        "response_r": _.toInteger(rgbArray[0]),
+        "response_g": _.toInteger(rgbArray[1]),
+        "response_b": _.toInteger(rgbArray[2]),
+        "response_munsell": trial.colors[_.toInteger(response.button)].munsell
       };
 
       // clear the display
