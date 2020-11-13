@@ -24,15 +24,15 @@ if(argv.gameport) {
   console.log('no gameport specified: using 8887\nUse the --gameport flag to change');
 }
 
-let server;
-let io;
+//let server;
+//let io;
 try {
-  const privateKey  = fs.readFileSync('/etc/apache2/ssl/stanford-cogsci.org.key'),
-        certificate = fs.readFileSync('/etc/apache2/ssl/stanford-cogsci.org.crt'),
-        intermed    = fs.readFileSync('/etc/apache2/ssl/intermediate.crt'),
-        options     = {key: privateKey, cert: certificate, ca: intermed};
-  server            = require('https').createServer(options,app).listen(gameport),
-  io                = require('socket.io')(server);
+  var pathToCerts = '/etc/letsencrypt/live/cogtoolslab.org/';
+  var privateKey = fs.readFileSync(pathToCerts + 'privkey.pem'),
+      certificate = fs.readFileSync(pathToCerts + 'cert.pem'),
+      options = { key: privateKey, cert: certificate },
+      server = require('https').createServer(options,app).listen(gameport),
+      io = require('socket.io')(server);
 } catch (err) {
   console.log("cannot find SSL certificates; falling back to http");
   server = app.listen(gameport),
@@ -68,9 +68,6 @@ io.on('connection', function (socket) {
 
   // Recover query string information and set condition
   const query = socket.handshake.query;
-
-  // Send client stims
-  initializeWithTrials(socket);
 
   // Set up callback for writing client data to mongo
   socket.on('currentData', function(data) {
@@ -114,7 +111,7 @@ const handleInvalidID = function(req, res) {
 function checkPreviousParticipant (workerId, callback) {
   const p = {'wID': workerId};
   const postData = {
-    dbname: 'neural_constructions',
+    dbname: 'color-ref',
     query: p,
     projection: {'_id': 1}
   };
@@ -138,33 +135,6 @@ function checkPreviousParticipant (workerId, callback) {
     }
   );
 };
-
-function initializeWithTrials(socket) {
-  const gameid = UUID();
-  sendPostRequest('http://localhost:6004/db/getstims', {
-    json: {
-      dbname: 'neural_constructions',
-      colname: 'stimuli',
-      gameid: gameid
-    }
-  }, (error, res, body) => {
-    if (!error && res.statusCode === 200) {
-      // send trial list (and id) to client
-      var packet = _.extend({}, _.omit(body, ["_id", "numGames", "games"]), {
-      	gameid: gameid
-      });
-      console.log('participant requested initial packet!')
-      socket.emit('onConnected', packet);
-    } else {
-      console.log(`error getting stims: ${error} ${body}`);
-      console.log('returning hard-coded sticks');
-      socket.emit('onConnected', {
-	gameid: gameid,
-	trials: _.clone(require('./example_trials.json'))
-      });
-    }
-  });
-}
 
 function UUID () {
   var baseName = (Math.floor(Math.random() * 10) + '' +
