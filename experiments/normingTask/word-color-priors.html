@@ -48,13 +48,27 @@
       var wordSet = _.clone(wordSets[wordSetID])
       var turkInfo = jsPsych.turk.turkInfo();
 
+      var preview = {
+        type: 'instructions',
+        pages: ['<p> Welcome! In this HIT, you will be asked to provide your color assocations for a variety of words. </p>' +
+              '<p> <b> If you are interested in learning more about this HIT, ' +
+              'please first accept the HIT in MTurk before continuing further</b>. </p>'],
+        show_clickable_nav: false,
+        allow_keys: false
+      };
+
       var welcome = {
         type: 'html-keyboard-response',
         stimulus: 'Welcome to the experiment. <strong>Press any key to begin</strong>',
         data: {'condition' : 'instructions'}
       };
 
-      timeline.push(welcome);
+      // if still in preview mode, tell them to accept first, otherwise show first slide
+      if (!turkInfo.previewMode) {
+        timeline.push(welcome);
+      } else {
+        timeline.push(preview);
+      }
 
       //==========================================================================
       // COLORBLINDESS TRIALS
