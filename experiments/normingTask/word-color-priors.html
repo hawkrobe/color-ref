@@ -2,7 +2,7 @@
 <html>
     <head>
       <title>Word-color association task</title>
-      	<!-- <script src="/socket.io/socket.io.js" type="text/javascript"></script> -->
+      	<script src="/socket.io/socket.io.js" type="text/javascript"></script>
         <script src="jspsych-6.1.0/jspsych.js"></script>
         <script src="jspsych-6.1.0/plugins/jspsych-html-keyboard-response.js"></script>
         <script src="jspsych-6.1.0/plugins/jspsych-html-button-response.js"></script>
@@ -41,7 +41,7 @@
     }
 
     function setupGame () {
-      // var socket = io.connect();
+      var socket = io.connect();
       var timeline = [];
       var iterationName = 'testing'
       var wordSetID = '0'
@@ -222,8 +222,8 @@
               return true;
             },
             on_finish: function() {
-              jsPsych.endExperiment();
-              // jsPsych.turk.submitToTurk({'bonus': '0'});
+              // jsPsych.endExperiment();
+              jsPsych.turk.submitToTurk({'bonus': '0'});
             }
           };
 
@@ -266,8 +266,8 @@
               return true;
             },
             on_finish: function() {
-              jsPsych.endExperiment();
-              // jsPsych.turk.submitToTurk({'bonus': '0'});
+              // jsPsych.endExperiment();
+              jsPsych.turk.submitToTurk({'bonus': '0'});
             }
           };
 
@@ -304,6 +304,7 @@
 
       // randomize array of target words + catch trial word
       var shuffledTargets = jsPsych.randomization.repeat(wordSet.concat(blue), 1);
+      // var shuffledTargets = blue;
       console.log(shuffledTargets)
 
       // store responses to off ramp participants who click same color more than 3 times in a row
@@ -351,8 +352,8 @@
               return true;
             },
             on_finish: function() {
-              jsPsych.endExperiment();
-              // jsPsych.turk.submitToTurk({'bonus': '0'});
+              // jsPsych.endExperiment();
+              jsPsych.turk.submitToTurk({'bonus': '0'});
             }
           };
 
@@ -406,8 +407,8 @@
               }
             },
             on_finish: function() {
-              jsPsych.endExperiment();
-              // jsPsych.turk.submitToTurk({'bonus': '0'});
+              // jsPsych.endExperiment();
+              jsPsych.turk.submitToTurk({'bonus': '0'});
             }
           };
 
@@ -484,8 +485,8 @@
               return true;
             },
             on_finish: function() {
-              jsPsych.endExperiment();
-              // jsPsych.turk.submitToTurk({'bonus': '0'});
+              // jsPsych.endExperiment();
+              jsPsych.turk.submitToTurk({'bonus': '0'});
             }
           };
 
@@ -642,7 +643,7 @@
       	    wordSetID: wordSetID
       	  })
           console.log(trialData)
-          // socket.emit('currentData', packet);
+          socket.emit('currentData', packet);
         }
 
       })
