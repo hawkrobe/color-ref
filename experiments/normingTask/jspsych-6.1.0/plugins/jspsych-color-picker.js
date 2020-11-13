@@ -88,7 +88,7 @@ jsPsych.plugins["color-picker"] = (function() {
       var color = trial.colors[i];
       var row = Math.floor(i/11);
       var col = i % 11;
-      console.log(row, col);
+      // console.log(row, col);
       if (col == 0 && row % 2 == 0) {
         html += '<div class="btn-group" style="margin-left:80px">';
       } else if (col == 0 && row % 2 == 0){
@@ -116,7 +116,7 @@ jsPsych.plugins["color-picker"] = (function() {
       display_element
         .querySelector('#jspsych-html-button-response-button-' + i)
         .addEventListener('click', function(e){
-          var choice = e.currentTarget.getAttribute('data-choice'); 
+          var choice = e.currentTarget.getAttribute('data-choice');
           after_response(choice);
         });
     }
@@ -127,7 +127,7 @@ jsPsych.plugins["color-picker"] = (function() {
         function() { $(this).addClass("btn-hover"); },
         function() { $(this).removeClass("btn-hover"); }
       );
-    
+
     // store response
     var response = {
       rt: null,
