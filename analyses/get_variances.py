@@ -24,8 +24,7 @@ from scipy.stats import rankdata
 import pandas as pd
 
 #---------------------------------------------------------------------------------
-# STEP 1: Estimate a Gaussian for each word from the points for that word
-# https://cmsc426.github.io/colorseg/
+# STEP 0: Process data
 
 # process data csv into pandas dataframe
 df = pd.read_csv(r'../data/norming/colorPickerData-0.csv')
@@ -35,23 +34,27 @@ df = df[cols]
 
 # CHANGE CONDITION TO SELECT DIFFERENT BLOCK
 df = df[df['condition'] == 'block1_target_trial']
+block = "block1"
+wordSet = "wordSet0"
 
 
+# identify target words
 uniqueWords = set(df['word'].to_list())
 colorWords = set(['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'])
 targetWords = list(uniqueWords-colorWords)
 print(targetWords)
+
+#---------------------------------------------------------------------------------
+# HELPER FUNCTIONS
 
 # function to select all RGB points that belong to a particular target words
 def selectRGBPoints(df, word):
     points = df[df['word'] == word]
     return points['response_r'].to_list(), points['response_g'].to_list(), points['response_b'].to_list()
 
-# iterate over all words
-unsorted_variances = open("unsorted-variances.txt", "w+")
-for index, word in enumerate(targetWords[0:3]):
-    r, g, b = selectRGBPoints(df, word)
-    print(len(r))
+
+# convert RGB points to LAB
+def convertToLAB(r, g, b):
     labTuples = np.empty([len(r),], dtype=object)
     for i in range(len(r)):
         # convert to [0,1] scaled rgb values
@@ -65,31 +68,45 @@ for index, word in enumerate(targetWords[0:3]):
         # store in array
         labTuples[i] = lab
 
-#     # store each point in a numpy array of dimensions num_points x LAB
-#     point_matrix = np.empty([len(points),3])
-#     for line_num, point in enumerate(points):
-#         point = point.split(" ")
-#         point_matrix[line_num, 0] = float(point[0])
-#         point_matrix[line_num, 1] = float(point[1])
-#         point_matrix[line_num, 2] = float(point[2][:-1])
-#
-#     # estimate parameters (mean and covariance) of the likelihood gaussian distribution
-#     mean = np.mean(point_matrix, axis=0)
-#     # store mean
-#     all_means[index,:] = mean
-#
-#     product = np.matmul(np.transpose(point_matrix - mean), point_matrix - mean)
-#     covariance = product/len(points)
-#     # store covariance matrix
-#     all_covariance[index, :, :] = covariance
-#
-#     # STEP 2: Calculate variance of each word's Gaussian from its covariance matrix
-#     variance = covariance.trace()
-#     all_variances[index] = variance
-#     unsorted_variances.write('%s: %d\n' % (word, variance))
-#
-# unsorted_variances.close()
-#
+    return labTuples
+
+#---------------------------------------------------------------------------------
+# STEP 1: Estimate a Gaussian for each word from the points for that word
+# https://cmsc426.github.io/colorseg/
+
+unsorted_variances = open("unsorted-variances-%s-%s.txt" % (wordSet, block), "w+")
+all_means = np.empty([len(targetWords), 3]) #store means
+all_covariance = np.empty([len(targetWords), 3, 3]) #store covariance matrices
+all_variances = np.empty([len(targetWords),]) # store variances
+
+for index, word in enumerate(targetWords):
+    r, g, b = selectRGBPoints(df, word)
+    labTuples = convertToLAB(r, g, b)
+
+    # store each point in a numpy array of dimensions num_points x LAB
+    point_matrix = np.empty([len(labTuples),3])
+    for line_num, point in enumerate(labTuples):
+        point_matrix[line_num, 0] = labTuples[line_num][0]
+        point_matrix[line_num, 1] = labTuples[line_num][1]
+        point_matrix[line_num, 2] = labTuples[line_num][2]
+
+    # estimate parameters (mean and covariance) of the likelihood gaussian distribution
+    mean = np.mean(point_matrix, axis=0)
+    # store mean
+    all_means[index,:] = mean
+
+    product = np.matmul(np.transpose(point_matrix - mean), point_matrix - mean)
+    covariance = product/len(labTuples)
+    # store covariance matrix
+    all_covariance[index, :, :] = covariance
+
+    # STEP 2: Calculate variance of each word's Gaussian from its covariance matrix
+    variance = covariance.trace()
+    all_variances[index] = variance
+    unsorted_variances.write('%s: %d\n' % (word, variance))
+
+unsorted_variances.close()
+
 # # STEP 3: sort words in order of ascending variance
 # argsorted = np.argsort(all_variances)
 # print(argsorted)
