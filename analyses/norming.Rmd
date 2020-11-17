@@ -14,7 +14,7 @@ library(xtable)
 # Import data
 
 ```{r}
-d.raw = read_csv('../data/norming/dataFromMongo.csv') %>%
+d = read_csv('../data/norming/dataFromMongo.csv') %>%
   filter(wordSetID == 0)
 ```
 Check how many people failed catch trials
@@ -44,6 +44,21 @@ cat('including', length(complete_games), 'complete games')
 d <- d.raw %>%
   filter(aID %in% complete_games)
 ```
+Save filtered data for Python scripts
+```{r}
+var <- c("word")
+allWords <- d[var]
+words <- c(unique(words))
+print(words[0])
+
+library(dplyr)
+colorAssociations <- d %>%
+  filter(trial_type == 'color-picker')
+
+write.csv(colorAssociations, "../data/norming/colorPickerData-0.csv", row.names = TRUE)
+  
+```
+
 
 ```{r}
 library(scales)
