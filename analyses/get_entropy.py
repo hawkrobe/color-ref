@@ -1,8 +1,3 @@
-#---------------------------------------------------------------------------------
-# Modify the Bayesian representativeness model code to estimate a Gaussian from
-# the human annotation data points instead of the image data points
-#---------------------------------------------------------------------------------
-
 import random
 import numpy as np
 import colormath
