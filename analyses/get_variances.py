@@ -35,7 +35,7 @@ df = df[cols]
 # CHANGE CONDITION TO SELECT DIFFERENT BLOCK
 df = df[df['condition'] == 'block1_target_trial']
 block = "block1"
-wordSet = "wordSet0"
+wordSet = "set0"
 
 
 # identify target words
@@ -107,19 +107,16 @@ for index, word in enumerate(targetWords):
 
 unsorted_variances.close()
 
-# # STEP 3: sort words in order of ascending variance
-# argsorted = np.argsort(all_variances)
-# print(argsorted)
-# sorted = np.sort(all_variances)
-# print(sorted)
-#
-# sorted_variances = open("sorted-variances.txt", "w+")
-# # ordered_words = np.empty([len(words),], dtype=object)
-# for i, index in enumerate(argsorted):
-#     # ordered_words[i] = words[index]
-#     sorted_variances.write('%s: %d\n' % (words[index], sorted[i]))
-#
-# # print(ordered_words)
-# sorted_variances.close()
+# STEP 3: sort words in order of ascending variance
+argsorted = np.argsort(all_variances)
+sortedWords = np.array(targetWords)[argsorted]
+sortedVariances = np.sort(all_variances)
+
+df2 = pd.DataFrame({'word':sortedWords, 'block1_variance':sortedVariances})
+cols = ['word', 'block1_variance']
+df2 = df2[cols]
+print(df2)
+# save df as csv
+df2.to_csv("sorted-variances-%s-%s.csv" % (wordSet, block), index=False)
 
 #---------------------------------------------------------------------------------
