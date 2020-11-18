@@ -8,6 +8,7 @@ output: html_notebook
 ```{r}
 library(tidyverse)
 library(knitr)
+library(scales)
 library(xtable)
 ```
 
@@ -16,6 +17,7 @@ library(xtable)
 ```{r}
 d.raw = read_csv('../data/norming/dataFromMongo.csv') 
 ```
+
 Check how many people failed catch trials
 
 ```{r results='asis'}
@@ -28,6 +30,7 @@ d.raw %>%
   kable() %>%
   cat(sep = '\n')
 ```
+
 Only include participants who completed exactly 89 color-picker trials (80 words + 9 practice/catch)
 
 ```{r}
@@ -52,8 +55,23 @@ d %>%
   tally()
 ```
 
+Save filtered data for Python scripts
+
 ```{r}
-library(scales)
+words <- d %>%
+  pull(word) %>%
+  unique()
+
+colorAssociations <- d %>%
+  filter(trial_type == 'color-picker')
+
+write.csv(colorAssociations, "../data/norming/colorPickerData-0.csv", row.names = TRUE)
+  
+```
+
+Visualize color grids
+
+```{r}
 d %>%
   filter(trial_type == 'color-picker') %>%
   mutate(hex = rgb(response_r/255, response_g/255, response_b/255)) %>%
