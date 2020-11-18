@@ -1,30 +1,20 @@
-import random
 import numpy as np
-import colormath
-import matplotlib.pyplot as plt
-import statistics
-import math
 import scipy
 import pandas as pd
-from collections import defaultdict
-from mpl_toolkits.mplot3d import axes3d, Axes3D
 from statistics import mean
-from matplotlib import pyplot
-from mpl_toolkits.mplot3d import Axes3D
 from scipy.stats import entropy
 
 # #---------------------------------------------------------------------------------
 # STEP 0: make points x LAB array of dummy points
 
-df = pd.read_csv(r'../data/norming/colorPickerData-0.csv')
+df = pd.read_csv(r'../data/norming/colorPickerData-all.csv')
 # select columns for word and RGB color response
 cols = ["word", "button_pressed", "response_munsell", "condition"]
 df = df[cols]
 
 # CHANGE CONDITION TO SELECT DIFFERENT BLOCK
-# df = df[df['condition'] == 'block2_target_trial']
-block = "both"
-wordSet = "set0"
+df = df[df['condition'] == 'block2_target_trial']
+block = "block2"
 
 # identify target words
 uniqueWords = set(df['word'].to_list())
@@ -69,4 +59,4 @@ cols = ['word', block]
 df2 = df2[cols]
 print(df2)
 # save df as csv
-df2.to_csv("./entropy/sorted-entropies-%s-%s.csv" % (wordSet, block), index=False)
+df2.to_csv("./entropy/sorted-entropies-all-%s.csv" % block, index=False)

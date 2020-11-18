@@ -1,37 +1,26 @@
-import random
 import csv
 import numpy as np
 import colormath
-import matplotlib.pyplot as plt
 import statistics
 import math
 import scipy
-from collections import defaultdict
+import pandas as pd
 from colormath.color_conversions import convert_color
 from colormath.color_objects import LabColor, LCHabColor, SpectralColor, sRGBColor, XYZColor, LCHuvColor, IPTColor, HSVColor
-from mpl_toolkits.mplot3d import axes3d, Axes3D
 from statistics import mean
-from matplotlib import pyplot
-from mpl_toolkits.mplot3d import Axes3D
-from scipy.stats import multivariate_normal
-from scipy.special import logsumexp
-from scipy.stats import rankdata
-import pandas as pd
 
 #---------------------------------------------------------------------------------
 # STEP 0: Process data
 
 # process data csv into pandas dataframe
-df = pd.read_csv(r'../data/norming/colorPickerData-0.csv')
+df = pd.read_csv(r'../data/norming/colorPickerData-all.csv')
 # select columns for word and RGB color response
 cols = ["word", "response_r", "response_g", "response_b", "condition"]
 df = df[cols]
 
 # CHANGE CONDITION TO SELECT DIFFERENT BLOCK
-df = df[df['condition'] == 'block1_target_trial']
-block = "block1"
-wordSet = "set0"
-
+# df = df[df['condition'] == 'block2_target_trial']
+block = "both"
 
 # identify target words
 uniqueWords = set(df['word'].to_list())
@@ -112,6 +101,6 @@ cols = ['word', block]
 df2 = df2[cols]
 print(df2)
 # save df as csv
-df2.to_csv("./variance/sorted-variances-%s-%s.csv" % (wordSet, block), index=False)
+df2.to_csv("./variance/sorted-variances-all-%s.csv" % block, index=False)
 
 #---------------------------------------------------------------------------------
