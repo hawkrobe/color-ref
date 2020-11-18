@@ -42,7 +42,7 @@ wordSet = "set0"
 uniqueWords = set(df['word'].to_list())
 colorWords = set(['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'])
 targetWords = list(uniqueWords-colorWords)
-print(targetWords)
+print(len(targetWords))
 
 #---------------------------------------------------------------------------------
 # HELPER FUNCTIONS
@@ -74,7 +74,7 @@ def convertToLAB(r, g, b):
 # STEP 1: Estimate a Gaussian for each word from the points for that word
 # https://cmsc426.github.io/colorseg/
 
-unsorted_variances = open("unsorted-variances-%s-%s.txt" % (wordSet, block), "w+")
+# unsorted_variances = open("./variance/unsorted-variances-%s-%s.txt" % (wordSet, block), "w+")
 all_means = np.empty([len(targetWords), 3]) #store means
 all_covariance = np.empty([len(targetWords), 3, 3]) #store covariance matrices
 all_variances = np.empty([len(targetWords),]) # store variances
@@ -103,20 +103,20 @@ for index, word in enumerate(targetWords):
     # STEP 2: Calculate variance of each word's Gaussian from its covariance matrix
     variance = covariance.trace()
     all_variances[index] = variance
-    unsorted_variances.write('%s: %d\n' % (word, variance))
+    # unsorted_variances.write('%s: %d\n' % (word, variance))
 
-unsorted_variances.close()
+# unsorted_variances.close()
 
 # STEP 3: sort words in order of ascending variance
 argsorted = np.argsort(all_variances)
 sortedWords = np.array(targetWords)[argsorted]
 sortedVariances = np.sort(all_variances)
 
-df2 = pd.DataFrame({'word':sortedWords, 'block1_variance':sortedVariances})
-cols = ['word', 'block1_variance']
+df2 = pd.DataFrame({'word':sortedWords, block:sortedVariances})
+cols = ['word', block]
 df2 = df2[cols]
 print(df2)
 # save df as csv
-df2.to_csv("sorted-variances-%s-%s.csv" % (wordSet, block), index=False)
+df2.to_csv("./variance/sorted-variances-%s-%s.csv" % (wordSet, block), index=False)
 
 #---------------------------------------------------------------------------------
