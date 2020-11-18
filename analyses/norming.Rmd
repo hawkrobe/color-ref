@@ -14,13 +14,12 @@ library(xtable)
 # Import data
 
 ```{r}
-d.raw = read_csv('../data/norming/dataFromMongo.csv') %>%
-  filter(wordSetID == 0)
+d.raw = read_csv('../data/norming/dataFromMongo.csv') 
 ```
 Check how many people failed catch trials
 
 ```{r results='asis'}
-d %>%
+d.raw %>%
   group_by(aID) %>%
   unite(trial_chunk, trial_type, condition) %>%
   filter(trial_index == last(trial_index)) %>%
@@ -32,7 +31,9 @@ d %>%
 Only include participants who completed exactly 89 color-picker trials (80 words + 9 practice/catch)
 
 ```{r}
-complete_games = d %>%
+d.raw = read_csv('../data/norming/dataFromMongo.csv') 
+
+complete_games = d.raw %>%
   filter(trial_type == 'color-picker') %>%
   group_by(aID) %>%
   tally() %>%
@@ -43,6 +44,12 @@ cat('including', length(complete_games), 'complete games')
 
 d <- d.raw %>%
   filter(aID %in% complete_games)
+
+d %>%
+  group_by(wordSetID, aID) %>%
+  tally() %>%
+  group_by(wordSetID) %>%
+  tally()
 ```
 
 ```{r}
