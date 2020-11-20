@@ -1,0 +1,78 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(knitr)
+library(scales)
+library(xtable)
+```
+
+```{r}
+d = read_csv('../data/norming/compiled-variance-entropy-glasgowRatings.csv') 
+```
+```{r}
+filteredData = d %>%
+  filter(imageability != 'N/A')
+```
+# visualize variables
+
+```{r}
+scatter.smooth(x=filteredData$variance, y=filteredData$imageability)
+scatter.smooth(x=filteredData$variance, y=filteredData$concreteness)
+```
+# Build and diagnose linear model for IMAGEABILITY
+```{r}
+# correlation
+filteredData$imageability <- sapply(filteredData$imageability, as.numeric)
+cat('variance-imageability correlation = ', cor(filteredData$variance, filteredData$imageability))
+
+# get summary stats
+linearModIMAG <- lm(imageability ~ variance, data=filteredData) # imageability as a function of variance
+imagSummary <- summary(linearModIMAG) # capture model summary as an object
+print(imagSummary)
+
+# calculate summary stats for practice
+imagCoeffs <- imagSummary$coefficients # model coefficients
+beta.estimate <- imagCoeffs["variance", "Estimate"]  # get beta estimate for variance
+std.error <- imagCoeffs["variance", "Std. Error"]  # get std.error for variance
+
+t_value_imag <- beta.estimate/std.error  # calc t statistic
+# larger t-value indicates that it is less likely that the coefficient is not equal to zero purely by chance
+
+p_value_imag <- 2*pt(-abs(t_value), df=nrow(filteredData)-ncol(filteredData))  # calc p Value
+# when p Value is less than significance level (< 0.05), we can safely reject the null hypothesis that the co-efficient β of the predictor is zero
+
+f_statistic <- linearModIMAG$fstatistic[1]  # fstatistic
+f <- summary(linearModIMAG)$fstatistic  # parameters for model p-value calc
+model_p <- pf(f[1], f[2], f[3], lower=FALSE)
+```
+
+# Build and diagnose linear model for CONCRETENESS
+```{r}
+# correlation
+filteredData$concreteness <- sapply(filteredData$concreteness, as.numeric)
+cat('variance-concreteness correlation = ', cor(filteredData$variance, filteredData$concreteness))
+
+# get summary stats
+linearModCNC <- lm(concreteness ~ variance, data=filteredData) # concreteness as a function of variance
+cncSummary <- summary(linearModCNC)
+print(cncSummary)
+```
+```{r}
+linearMod <- lm(imageability ~ variance + entropy, data=filteredData)
+summary(linearMod)
+
+plot(fitted(linearModIMAG), residuals(linearModIMAG))
+```
+# Attempt at mixed effects model
+http://www.bodowinter.com/uploads/1/2/9/3/129362560/bw_lme_tutorial2.pdf
+```{r}
+library(lme4)
+
+mixedModel <- lmer(imageability ~ variance + (1|word), data=filteredData, control=lmerControl(check.nobs.vs.nlev = "ignore", check.nobs.vs.rankZ = "ignore", check.nobs.vs.nRE="ignore"))
+summary(mixedModel)
+```
+
