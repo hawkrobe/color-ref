@@ -8,6 +8,8 @@ library(tidyverse)
 library(knitr)
 library(scales)
 library(xtable)
+library(broom)
+library(ggthemes)
 ```
 
 ```{r}
@@ -15,22 +17,42 @@ d = read_csv('../data/norming/compiled-variance-entropy-glasgowRatings.csv')
 ```
 ```{r}
 filteredData = d %>%
-  filter(imageability != 'N/A')
+  filter(imageability != 'N/A') %>%
+  mutate(imageability = as.numeric(imageability),
+         concreteness = as.numeric(concreteness))
 ```
 # visualize variables
+
+```{r}
+filteredData %>%
+  mutate(log_variance = log(variance)) %>%
+  pivot_longer(-word) %>%
+  ggplot(aes(x = value)) +
+    geom_histogram() +
+    facet_wrap(~ name, scales='free') +
+    theme_few()
+```
 
 ```{r}
 scatter.smooth(x=filteredData$variance, y=filteredData$imageability)
 scatter.smooth(x=filteredData$variance, y=filteredData$concreteness)
 ```
+
+# Examine relationship between DVs
+
+```{r}
+cor(filteredData$entropy, filteredData$variance, method = 'spearman')
+```
+
 # Build and diagnose linear model for IMAGEABILITY
+
 ```{r}
 # correlation
-filteredData$imageability <- sapply(filteredData$imageability, as.numeric)
 cat('variance-imageability correlation = ', cor(filteredData$variance, filteredData$imageability))
+cor.test()
 
 # get summary stats
-linearModIMAG <- lm(imageability ~ variance, data=filteredData) # imageability as a function of variance
+linearModIMAG <- lm(log(variance) ~ imageability, data=filteredData) # imageability as a function of variance
 imagSummary <- summary(linearModIMAG) # capture model summary as an object
 print(imagSummary)
 
@@ -53,20 +75,39 @@ model_p <- pf(f[1], f[2], f[3], lower=FALSE)
 # Build and diagnose linear model for CONCRETENESS
 ```{r}
 # correlation
-filteredData$concreteness <- sapply(filteredData$concreteness, as.numeric)
 cat('variance-concreteness correlation = ', cor(filteredData$variance, filteredData$concreteness))
+cat('concreteness-imagability correlation = ', cor(filteredData$imageability, filteredData$concreteness))
+cor.test(filteredData$variance, filteredData$concreteness)
 
 # get summary stats
-linearModCNC <- lm(concreteness ~ variance, data=filteredData) # concreteness as a function of variance
-cncSummary <- summary(linearModCNC)
+# concreteness as a function of variance
+linearModImg <- filteredData %>%
+  lm(log(variance) ~ imageability,
+     data = .)
+
+linearModConcrete <- filteredData %>%
+  lm(log(variance) ~ concreteness, 
+     data=.) 
+
+linearModBoth <- filteredData %>%
+  lm(log(variance) ~ imageability + concreteness,
+     data=.) 
+
+anova(linearModImg, linearModBoth)
+anova(linearModConcrete, linearModBoth)
+cncSummary <- summary(linearModBoth)
 print(cncSummary)
 ```
+
 ```{r}
 linearMod <- lm(imageability ~ variance + entropy, data=filteredData)
 summary(linearMod)
 
 plot(fitted(linearModIMAG), residuals(linearModIMAG))
 ```
+
+
+
 # Attempt at mixed effects model
 http://www.bodowinter.com/uploads/1/2/9/3/129362560/bw_lme_tutorial2.pdf
 ```{r}
