@@ -43,7 +43,7 @@ for w in words:
         cnc.append(c.tolist()[0])
         original.append('Y')
     elif w == 'flag':
-        print('%s not found' % w)
+        # print('%s not found' % w)
         imag.append("N/A")
         cnc.append("N/A")
         original.append('N/A')
@@ -75,10 +75,45 @@ for w in words:
         original.append('N/A')
 
 
-print(count)
-df_final = pd.DataFrame({'word':words, 'variance':df_variance['variance'], 'entropy':entropies, 'imageability':imag, 'concreteness':cnc})
-cols = ['word', 'variance', 'entropy', 'imageability', 'concreteness']
-df_final = df_final[cols]
+# print(count)
+# df_final = pd.DataFrame({'word':words, 'variance':df_variance['variance'], 'entropy':entropies, 'imageability':imag, 'concreteness':cnc})
+# cols = ['word', 'variance', 'entropy', 'imageability', 'concreteness']
+# df_final = df_final[cols]
+#
+# # save df as csv
+# df_final.to_csv('../data/norming/compiled-variance-entropy-glasgowRatings.csv', index=False)
 
-# save df as csv
-df_final.to_csv('../data/norming/compiled-variance-entropy-glasgowRatings.csv', index=False)
+#---------------------------------------------------------------------------------
+import json
+
+originalWordList = []
+for i in range(5):
+    with open('../experiments/normingTask/json-data-files/norming-task-word-set-%d.json' % i) as f:
+      data = json.load(f)
+      data_json = json.dumps(data)
+
+      for j in range(len(data)):
+          originalWordList.append(data[j].items()[0][1])
+
+words = set(words)
+originalWordSet = set(originalWordList)
+
+import collections
+# print([item for item, count in collections.Counter(originalWordList).items() if count > 1])
+#
+# print(len(words))
+# print(words)
+# print(len(originalWordList))
+# print(originalWordList)
+
+#---------------------------------------------------------------------------------
+# check if the top 99 words (least entropy and least variance) in the sorted variances and sorted entropies are the same
+concrete_entp = set(df_entropy['word'].tolist()[0:99])
+concrete_var = set(df_variance['word'].tolist()[0:99])
+print("words in bottom 50% ENTP (least entropy) but not in bottom 50% VAR (highest variance)")
+print(concrete_entp - concrete_var)
+print("%d of %d words are different" % (len(concrete_entp - concrete_var), len(concrete_entp)))
+print("")
+print("words in bottom 50% VAR (least variance) but not in bottom 50% ENTP (highest entropy)")
+print(concrete_var - concrete_entp)
+print("%d of %d words are different" % (len(concrete_var - concrete_entp), len(concrete_entp)))
