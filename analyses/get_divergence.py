@@ -21,7 +21,6 @@ df_entropy = pd.read_csv(r'./entropy/sorted-entropies-all-%s.csv' % block)
 df_entropy = df_entropy.rename(columns={block: "entropy"})
 
 orderedWords = df_entropy['word'].to_list()
-print(len(orderedWords))
 
 #---------------------------------------------------------------------------------
 # HELPER FUNCTIONS
@@ -87,7 +86,7 @@ wordsABS = orderedWords[99:]
 probabilitiesABS = getProbabilities(df, wordsABS, numChoices) # get probabilities of each response for each word
 divergenceABS = computeDivergence(wordsABS, probabilitiesABS)
 
-print(wordsCNC)
+# print(wordsCNC)
 # print(divergenceCNC)
 # print(divergenceABS)
 
@@ -96,14 +95,9 @@ np.savetxt("divergenceCNC.csv", divergenceCNC, delimiter=",")
 #---------------------------------------------------------------------------------
 # REJECTION SAMPLE WORDS BASED ON KL DIVERGENCE
 
-# pick a set of 4 words
-def sampleWords(words):
-    contexts_list = []
-    id = []
+def getDivergences(ctx):
     div = []
-    ctx = random.sample(words, 4)
-
-    # check the overlap of their response distributions (divergence)
+    # get divergence values for this sample
     for i in range(4):
         # get index of word i in orderedWords
         idx_i = orderedWords.index(ctx[i], 0, 100)
@@ -112,25 +106,60 @@ def sampleWords(words):
             idx_j = orderedWords.index(ctx[j], 0, 100)
             div.append(divergenceCNC[idx_i, idx_j]) # get divergence of word_i,j
 
-    return div, ctx
+    return div
+
 
 # valid context = all divergences are above threshold
-def validSample(divs, ctx, words, threshold):
-    # if valid, return the sample
-    if all(i >= threshold for i in divs):
-        return ctx
-    # if not valid sample, call validSample() again on new sample
+def validSample(div):
+    return all(i >= 0.7 for i in div)
+
+# pick sets of 4 from words
+def sampleWords(ctx, div, words, contexts_list):
+    # if there are only 4 words left, this must be a context
+    if len(words) == 4:
+        ctx = words
+        contexts_list.append(list(ctx))
+        return contexts_list
+
+    if validSample(div):
+        contexts_list.append(list(ctx)) # append to list of valid contexts
+        modifiedWords = list(np.setdiff1d(np.array(words), ctx)) # remove these words from the set of words to sample from
+        ctx = random.sample(modifiedWords, 4) # randomly sample the modified set
+        div = getDivergences(ctx) # get the divergences for this context
+        sampleWords(ctx, div, modifiedWords, contexts_list) # call sampleWords with modified set of words
     else:
-        newDivs, newCtx = sampleWords(words)
-        validSample(newDivs, newCtx, words, threshold)
+        ctx = random.sample(words, 4) # resample from the same word set
+        div = getDivergences(ctx) # get the divergences for this context
+        sampleWords(ctx, div, words, contexts_list) # call sampleWords on same word set
+
+def getContexts(wordSet, contexts_list):
+    # get first context and divergences for this context
+    ctx = np.random.choice(wordSet, 4)
+    div = getDivergences(ctx)
+    # call recursive function sampleWords to get contexts
+    sampleWords(ctx, div, wordSet, contexts_list)
 
 #--------------------------------
-# threshold = 0.7
+
+# iterate over word set twice and sample without replacement so that we
+# get a set of contexts with each word used 2 times
+concrete_contexts_list = []
+# call getContexts 2x to get 50 contexts
+getContexts(wordsCNC, concrete_contexts_list)
+getContexts(wordsCNC, concrete_contexts_list)
+
+abstract_contexts_list = []
+# call getContexts 2x to get 50 contexts
+getContexts(wordsCNC, abstract_contexts_list)
+getContexts(wordsCNC, abstract_contexts_list)
+
+# print(np.apply_along_axis(validSample, 1, abstract_contexts_list)) # check that all are valid samples
+# print(concrete_contexts_list)
+# print(abstract_contexts_list)
+
+# id = list(range(50))
+# df_cnc = pd.DataFrame({'id':id, 'words':concrete_contexts_list})
+# df_cnc.to_json('concrete-contexts.json', orient='records')
 #
-# contexts = open(filename, "w+")
-# contexts_list = []
-# id = []
-# while len()
-#     divs, ctx = sampleWords(wordsCNC)
-#     validContext = validSample(divs, ctx, wordsCNC, threshold)
-#     print(validContext)
+# df_abs = pd.DataFrame({'id':id, 'words':abstract_contexts_list})
+# df_abs.to_json('abstract-contexts.json', orient='records')
