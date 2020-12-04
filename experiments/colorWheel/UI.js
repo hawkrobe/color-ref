@@ -81,9 +81,12 @@ function initStimGrid(game) {
 
     // Display target to speaker
     if(word == game.target && game.my_role == game.playerRoleNames.role1) {
-      div.addClass('bg-warning');
-    } else {
+      div.addClass('border border-dark');
+      div.addClass('font-weight-bold');
       div.addClass('bg-light');
+    } else {
+      div.addClass('border border-light');
+      div.addClass('bg-white');
     }
     $("#word-grid").append(div);
   });
