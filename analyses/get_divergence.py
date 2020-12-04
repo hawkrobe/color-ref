@@ -102,7 +102,7 @@ divergenceABS = computeDivergence(wordsABS, probabilitiesABS)
 
 
 
-
+#---------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------
 # REJECTION SAMPLE WORDS BASED ON KL DIVERGENCE: HELPER FUNCTIONS
 #---------------------------------------------------------------------------------
@@ -111,69 +111,73 @@ def getDivergences(ctx):
     # get divergence values for this sample
     for i in range(4):
         # get index of word i in orderedWords
-        idx_i = wordsCNC.index(ctx[i])
+        idx_i = wordsABS.index(ctx[i])
         for j in range(i+1, 4):
             # get index of word j in orderedWords
-            idx_j = wordsCNC.index(ctx[j])
-            div.append(divergenceCNC[idx_i, idx_j]) # get divergence of word_i,j
+            idx_j = wordsABS.index(ctx[j])
+            div.append(divergenceABS[idx_i, idx_j]) # get divergence of word_i,j
 
     return div
 
 
 # valid context = all divergences are above threshold
-def validSample(div):
-    return all(i >= 0.7 for i in div)
+def validSample(div, threshold):
+    return all(i >= threshold for i in div)
 
 # pick sets of 4 from words
-def sampleWords(ctx, div, words, contexts_list):
+def sampleWords(ctx, div, words, contexts_list, threshold):
     # if there are only 4 words left, this must be a context
     if len(words) == 4:
         ctx = words
         contexts_list.append(list(ctx))
         return contexts_list
 
-    if validSample(div):
+    if validSample(div, threshold):
         contexts_list.append(list(ctx)) # append to list of valid contexts
         modifiedWords = list(np.setdiff1d(np.array(words), ctx)) # remove these words from the set of words to sample from
         ctx = random.sample(modifiedWords, 4) # randomly sample the modified set
         div = getDivergences(ctx) # get the divergences for this context
-        sampleWords(ctx, div, modifiedWords, contexts_list) # call sampleWords with modified set of words
+        sampleWords(ctx, div, modifiedWords, contexts_list, threshold) # call sampleWords with modified set of words
     else:
         ctx = random.sample(words, 4) # resample from the same word set
         div = getDivergences(ctx) # get the divergences for this context
-        sampleWords(ctx, div, words, contexts_list) # call sampleWords on same word set
+        sampleWords(ctx, div, words, contexts_list, threshold) # call sampleWords on same word set
 
-def getContexts(wordSet, contexts_list):
+def getContexts(wordSet, contexts_list, threshold):
     # get first context and divergences for this context
     ctx = np.random.choice(wordSet, 4)
     div = getDivergences(ctx)
     # call recursive function sampleWords to get contexts
-    sampleWords(ctx, div, wordSet, contexts_list)
+    sampleWords(ctx, div, wordSet, contexts_list, threshold)
 
 
 #--------------------------------
+# iterate over word set twice and sample without replacement so that we
+# get a set of contexts with each word used 2 times
+
 id = list(range(50))
+thresholdCNC = 0.7
+thresholdABS = 0.3
 
 #--------------------------------
 # MAKE CONCRETE CONTEXTS
 #--------------------------------
-# iterate over word set twice and sample without replacement so that we
-# get a set of contexts with each word used 2 times
-concrete_contexts_list = []
-# call getContexts 2x to get 50 contexts
-getContexts(wordsCNC, concrete_contexts_list)
-getContexts(wordsCNC, concrete_contexts_list)
-print(concrete_contexts_list)
-df_cnc = pd.DataFrame({'id':id, 'words':concrete_contexts_list})
-df_cnc.to_json('../data/contexts/divergence-rejection-sampling/concrete-contexts.json', orient='records')
+#
+# concrete_contexts_list = []
+# # call getContexts 2x to get 50 contexts
+# getContexts(wordsCNC, concrete_contexts_list, thresholdCNC)
+# getContexts(wordsCNC, concrete_contexts_list, thresholdCNC)
+# print(concrete_contexts_list)
+# df_cnc = pd.DataFrame({'id':id, 'words':concrete_contexts_list})
+# df_cnc.to_json('../data/contexts/divergence-rejection-sampling/concrete-contexts.json', orient='records')
 
 #--------------------------------
 # MAKE ABSTRACT CONTEXTS
 #--------------------------------
-# abstract_contexts_list = []
-# # call getContexts 2x to get 50 contexts
-# getContexts(wordsABS, abstract_contexts_list)
-# getContexts(wordsABS, abstract_contexts_list)
-# print(abstract_contexts_list)
-# df_abs = pd.DataFrame({'id':id, 'words':abstract_contexts_list})
-# df_abs.to_json('../data/contexts/divergence-rejection-sampling/abstract-contexts.json', orient='records')
+abstract_contexts_list = []
+# call getContexts 2x to get 50 contexts
+getContexts(wordsABS, abstract_contexts_list, thresholdABS)
+getContexts(wordsABS, abstract_contexts_list, thresholdABS)
+print(abstract_contexts_list)
+df_abs = pd.DataFrame({'id':id, 'words':abstract_contexts_list})
+df_abs.to_json('../data/contexts/divergence-rejection-sampling/abstract-contexts.json', orient='records')
