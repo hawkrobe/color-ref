@@ -6,6 +6,9 @@ from statistics import mean
 from scipy.stats import entropy
 
 #---------------------------------------------------------------------------------
+# INITIALIZE DATA
+#---------------------------------------------------------------------------------
+
 # LOAD ALL COLOR PICKER DATA
 df = pd.read_csv(r'../data/norming/colorPickerData-all.csv')
 # select columns for word and RGB color response
@@ -23,8 +26,8 @@ df_entropy = df_entropy.rename(columns={block: "entropy"})
 orderedWords = df_entropy['word'].to_list()
 
 #---------------------------------------------------------------------------------
-# HELPER FUNCTIONS
-
+# COMPUTING DIVERGENCE: HELPER FUNCTIONS
+#---------------------------------------------------------------------------------
 # function to select all responses that belong to a particular target word
 def selectWordResponses(df, word):
     points = df[df['word'] == word]
@@ -70,8 +73,9 @@ def computeDivergence(words, probabilities):
 
     return divergence
 
-#---------------------------------------------------------------------------------
+#--------------------------------
 # COMPUTE DIVERGENCES
+#--------------------------------
 numChoices = 88
 
 # select first half of ordered words (concrete) + their probabilities
@@ -86,24 +90,31 @@ wordsABS = orderedWords[99:]
 probabilitiesABS = getProbabilities(df, wordsABS, numChoices) # get probabilities of each response for each word
 divergenceABS = computeDivergence(wordsABS, probabilitiesABS)
 
-# print(wordsCNC)
-# print(divergenceCNC)
-# print(divergenceABS)
+# # COMPUTE DIVERGENCE ON ALL WORDS FOR FUTURE SIMPLICITY
+# probabilities = getProbabilities(df, orderedWords, numChoices) # get probabilities of each response for each word
+# divergences = computeDivergence(orderedWords, probabilities)
+# print(probabilities.shape)
+# print(divergences.shape)
 
-np.savetxt("divergenceCNC.csv", divergenceCNC, delimiter=",")
+# np.savetxt("divergences.csv", divergences, delimiter=",")
+
+
+
+
+
 
 #---------------------------------------------------------------------------------
-# REJECTION SAMPLE WORDS BASED ON KL DIVERGENCE
-
+# REJECTION SAMPLE WORDS BASED ON KL DIVERGENCE: HELPER FUNCTIONS
+#---------------------------------------------------------------------------------
 def getDivergences(ctx):
     div = []
     # get divergence values for this sample
     for i in range(4):
         # get index of word i in orderedWords
-        idx_i = orderedWords.index(ctx[i], 0, 100)
+        idx_i = wordsCNC.index(ctx[i])
         for j in range(i+1, 4):
             # get index of word j in orderedWords
-            idx_j = orderedWords.index(ctx[j], 0, 100)
+            idx_j = wordsCNC.index(ctx[j])
             div.append(divergenceCNC[idx_i, idx_j]) # get divergence of word_i,j
 
     return div
@@ -139,27 +150,30 @@ def getContexts(wordSet, contexts_list):
     # call recursive function sampleWords to get contexts
     sampleWords(ctx, div, wordSet, contexts_list)
 
-#--------------------------------
 
+#--------------------------------
+id = list(range(50))
+
+#--------------------------------
+# MAKE CONCRETE CONTEXTS
+#--------------------------------
 # iterate over word set twice and sample without replacement so that we
 # get a set of contexts with each word used 2 times
 concrete_contexts_list = []
 # call getContexts 2x to get 50 contexts
 getContexts(wordsCNC, concrete_contexts_list)
 getContexts(wordsCNC, concrete_contexts_list)
+print(concrete_contexts_list)
+df_cnc = pd.DataFrame({'id':id, 'words':concrete_contexts_list})
+df_cnc.to_json('../data/contexts/divergence-rejection-sampling/concrete-contexts.json', orient='records')
 
-abstract_contexts_list = []
-# call getContexts 2x to get 50 contexts
-getContexts(wordsCNC, abstract_contexts_list)
-getContexts(wordsCNC, abstract_contexts_list)
-
-# print(np.apply_along_axis(validSample, 1, abstract_contexts_list)) # check that all are valid samples
-# print(concrete_contexts_list)
+#--------------------------------
+# MAKE ABSTRACT CONTEXTS
+#--------------------------------
+# abstract_contexts_list = []
+# # call getContexts 2x to get 50 contexts
+# getContexts(wordsABS, abstract_contexts_list)
+# getContexts(wordsABS, abstract_contexts_list)
 # print(abstract_contexts_list)
-
-# id = list(range(50))
-# df_cnc = pd.DataFrame({'id':id, 'words':concrete_contexts_list})
-# df_cnc.to_json('concrete-contexts.json', orient='records')
-#
 # df_abs = pd.DataFrame({'id':id, 'words':abstract_contexts_list})
-# df_abs.to_json('abstract-contexts.json', orient='records')
+# df_abs.to_json('../data/contexts/divergence-rejection-sampling/abstract-contexts.json', orient='records')
