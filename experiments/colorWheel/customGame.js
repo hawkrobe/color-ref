@@ -8,8 +8,8 @@ class ServerRefGame extends ServerGame {
   constructor(config) {
     super(config);
     this.contexts = {
-      'concrete' : _.clone(_.sample(require('../../data/contexts/concrete-contexts.json'))),
-      'abstract' : _.clone(_.sample(require('../../data/contexts/abstract-contexts.json')))
+      'concrete' : _.clone(_.sample(require('../../data/contexts/divergence-rejection-sampling/concrete-contexts.json'))),
+      'abstract' : _.clone(_.sample(require('../../data/contexts/divergence-rejection-sampling/abstract-contexts.json')))
     };
     this.numBlocks = 6;
     this.numTrialsInBlock = 8;
@@ -19,7 +19,7 @@ class ServerRefGame extends ServerGame {
   }
 
   customEvents (socket) {}
-  
+
   // *
   // * TrialList creation
   // *
@@ -44,7 +44,7 @@ class ServerRefGame extends ServerGame {
     var tmp_concrete = _.shuffle(_.clone(this.contexts['concrete']['words']));
     var tmp_abstract = _.shuffle(_.clone(this.contexts['abstract']['words']));
     return _.map(conditionList, (conditionName, trialInBlock) => {
-      var roleNames = (this.playersThreshold == 1 ? [this.firstRole] : 
+      var roleNames = (this.playersThreshold == 1 ? [this.firstRole] :
                        _.values(this.playerRoleNames));
       return {
         condition: conditionName,
@@ -59,7 +59,7 @@ class ServerRefGame extends ServerGame {
       };
     });
   }
-  
+
   onMessage (client, message) {
     //Cut the message up into sub components
     var message_parts = message.split('.');
@@ -75,7 +75,7 @@ class ServerRefGame extends ServerGame {
     var others = gc.getOthers(client.userid);
     switch(message_type) {
 
-  
+
     case 'sendColor' :
       console.log('sending color');
       console.log(message_parts);
@@ -85,7 +85,7 @@ class ServerRefGame extends ServerGame {
         }));
       }
       break;
-      
+
     case 'sendResponse' :
       _.map(all, p => p.player.instance.emit('updateScore', {
         outcome: message_parts[1]
@@ -96,13 +96,13 @@ class ServerRefGame extends ServerGame {
         });
         gc.newRound();
       }, 3000);
-        
-      break; 
+
+      break;
 
     case 'exitSurvey' :
       console.log(message_parts.slice(1));
       break;
-      
+
     case 'h' : // Receive message when browser focus shifts
       //target.visible = message_parts[1];
       break;
@@ -133,7 +133,7 @@ class ServerRefGame extends ServerGame {
     //  firstRole: client.game.firstRole
     //   };
     // };
-    
+
     // var revealOutput = function(client, message_data) {
     //   var selections = message_data.slice(3);
     //   var allObjs = client.game.currStim.hiddenCards;
@@ -148,7 +148,7 @@ class ServerRefGame extends ServerGame {
     //    }))
     //  });
     // };
-    
+
 
     // var exitSurveyOutput = function(client, message_data) {
     //   var subjInfo = JSON.parse(message_data.slice(1));
@@ -157,7 +157,7 @@ class ServerRefGame extends ServerGame {
     //         ['targetGoalSet', 'distractorGoalSet', 'trialType', 'trialNum']),
     //  subjInfo);
     // };
-    
+
 
     // var messageOutput = function(client, message_data) {
     //   return _.extend(
@@ -206,7 +206,7 @@ class GameMap {
     console.log(this.initRevealed);
     console.log(this.grid);
   }
-  
+
   sampleInitRevealed (transformation) {
     const grid = (this.trialType == 'catch' ? this.sampleInitRevealedCatch() :
                   this.trialType == 'pragmatic' ? this.sampleInitRevealedPragmatic() :
@@ -218,7 +218,7 @@ class GameMap {
   matrixToDict (matrix) {
     return _.zipObject(this.labels, _.flatten(matrix));
   }
-  
+
   // This allows 8 possible initial states
   sampleInitRevealedCatch () {
     const initRevealed = [
@@ -240,7 +240,7 @@ class GameMap {
     ];
     return Math.random() < .5 ? initRevealed : this.reflect(initRevealed);
   }
-  
+
   rotate (grid) {
     return _.zip(...grid);
   }
