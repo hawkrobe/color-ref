@@ -42,17 +42,23 @@ ggboxplot(selectedWords, y = "sliderResponse",
 boxplot(sliderResponse~word, data=selectedWords, main="Expected Agreement",
    xlab="Words", ylab="% of population expected to share one's color association")
 ```
-
-# attempt to combine entropy ratings and slider responses to do a mixed effect model with subject as the random effect
-
+# compare expectation to entropy for each word
 ```{r}
-f = read_csv('../data/norming/compiled-variance-entropy-glasgowRatings.csv') 
 
-filteredData = f %>%
-  filter(imageability != 'N/A') %>%
-  mutate(imageability = as.numeric(imageability),
-         concreteness = as.numeric(concreteness))
+filtered <- d %>%
+  mutate(sliderResponse = as.numeric(sliderResponse))
+# calculate mean per group 
+avgExpectation <- aggregate(filtered$sliderResponse, by = list(filtered$word), FUN = mean)
+
+# load and format entropy data
+f = read_csv('./entropy/sorted-entropies-all-both.csv') 
+
+f = f %>%
+  mutate(both = as.numeric(both))
+
+scatter.smooth(x=f$both, y=avgExpectation$x, xlab = "Entropy of participants' color associations for all words", ylab = "Average % of population expected to share one's color association")
 ```
+# attempt to combine entropy ratings and slider responses to do a mixed effect model with subject as the random effect
 
 ```{r}
 library(lme4)
