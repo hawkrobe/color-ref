@@ -32,6 +32,7 @@ var customEvents = function(game) {
   game.socket.on('updateScore', function(data){
     $('#' + data.outcome).addClass('bg-dark');
     $('#' + game.target).addClass('bg-warning');
+    game.data.score += data.outcome == game.target ? 0.02 : 0;
   });
 
   game.socket.on('newRoundUpdate', function(data){
