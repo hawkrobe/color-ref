@@ -1,0 +1,64 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(knitr)
+library(scales)
+library(xtable)
+library(broom)
+```
+
+
+```{r}
+d = read_csv('./expectation/expectations-by-condition.csv') 
+```
+
+# using all data
+```{r}
+library("ggpubr")
+ggboxplot(d, y = "sliderResponse", 
+          color = "condition", palette = c("#00AFBB", "#E7B800"),
+          order = c("abstract", "concrete"),
+          ylab = "% of population expected to share one's color association", xlab="words")
+```
+
+# using top 10 and bottom 10 entropy words
+```{r}
+library(dplyr)
+selectedWords <- filter(d, word %in% c("lemon", "sun", "tomato", "fire", "apple", "spinach", "vegetable", "tree", "daffodil", 'noun', 'misconception', 'peculiarity', 'tendency', 'obligation', 'randomness', 'oddity', 'complexity', 'responsibility', 'absurdity'))
+
+library("ggpubr")
+ggboxplot(selectedWords, y = "sliderResponse", 
+          color = "condition", palette = c("#00AFBB", "#E7B800"),
+          order = c("abstract", "concrete"),
+          ylab = "% of population expected to share one's color association", xlab="words")
+```
+
+# plotting top and bottom 10 words individually
+```{r}
+boxplot(sliderResponse~word, data=selectedWords, main="Expected Agreement",
+   xlab="Words", ylab="% of population expected to share one's color association")
+```
+
+# attempt to combine entropy ratings and slider responses to do a mixed effect model with subject as the random effect
+
+```{r}
+f = read_csv('../data/norming/compiled-variance-entropy-glasgowRatings.csv') 
+
+filteredData = f %>%
+  filter(imageability != 'N/A') %>%
+  mutate(imageability = as.numeric(imageability),
+         concreteness = as.numeric(concreteness))
+```
+
+```{r}
+library(lme4)
+
+mixedModel <- lmer(entropy$filtered ~ sliderResponse$d  + (1|aID$d))
+summary(mixedModel)
+```
+
+
