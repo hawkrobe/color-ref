@@ -1,93 +1,203 @@
 import csv
 import numpy as np
 import colormath
-import statistics
-import gensim
+import pandas as pd
+import json
 import random
-import math
-import gensim.downloader as api
-from collections import defaultdict
 from colormath.color_conversions import convert_color
 from colormath.color_objects import LabColor, LCHabColor, SpectralColor, sRGBColor, XYZColor, LCHuvColor, IPTColor, HSVColor
-from mpl_toolkits.mplot3d import axes3d, Axes3D
-from statistics import mean 
 #---------------------------------------------------------------------------------
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.colors as colors
 import math
 import matplotlib
+import colorsys
 
 #---------------------------------------------------------------------------------
+# INITIALIZE DATA
+#---------------------------------------------------------------------------------
 
-# STEP 1: CIELab --> HSV, sort by hue, sorted-HSV --> RGB
-words = ['dog', 'mortal', 'big', 'adjective', 'religion', 'rain', 'lime', 'noun', 'angry', 'cloud', 'door', 'justice', 'berry', 'sad', 'tree', 'verb', 'existence', 'running', 'sky', 'fun', 'soaring', 'pain', 'equality', 'universe']
+# LOAD ALL COLOR PICKER DATA
+df = pd.read_csv(r'../data/norming/colorPickerData-all.csv')
+# select columns for word and RGB color response
+cols = ["word", "button_pressed", "response_munsell", "response_r", "response_g", "response_b", "condition"]
+df = df[cols]
 
+# CHANGE CONDITION TO SELECT DIFFERENT BLOCK
+df = df[df['condition'] == 'block1_target_trial']
+block = "block1"
+
+# LOAD ORDERED LIST OF WORDS BY ENTROPY
+df_entropy = pd.read_csv(r'./entropy/sorted-entropies-all-%s.csv' % block)
+df_entropy = df_entropy.rename(columns={block: "entropy"})
+words = df_entropy['word'].to_list()
+
+#---------------------------------------------------------------------------------
+# HELPER FUNCTIONS
+#---------------------------------------------------------------------------------
+
+# function to select all button responses that belong to a particular target words
+def selectResponses(df, word):
+    points = df[df['word'] == word]
+    return points['button_pressed'].to_list()
+
+# # convert RGB points to HSV
+# def RGBtoHSV(r, g, b):
+#     hsv_points = np.empty([len(r),3])
+#     for i in range(len(r)):
+#         # convert to [0,1] scaled rgb values
+#         c = (float(r[i])/255, float(g[i])/255, float(b[i])/255)
+#         # create RGB object
+#         rgb = sRGBColor(c[0], c[1], c[2])
+#         # convert
+#         hsv = convert_color(rgb, HSVColor)
+#         # get RGB values from object
+#         hsv = hsv.get_value_tuple()
+#         # store in array
+#         hsv_points[i, 0] = hsv[0]
+#         hsv_points[i, 1] = hsv[1]
+#         hsv_points[i, 2] = hsv[2]
+#
+#     return hsv_points
+#
+# # convert HSV to RGB
+# def HSVtoRGB(hsv_points):
+#     sorted_rgb = np.empty([len(hsv_points),], dtype=object)
+#     for i in range(len(hsv_points)):
+#         # create HSV object
+#         hsv = HSVColor(hsv_points[i,0], hsv_points[i,1], hsv_points[i,2])
+#         # convert HSV to RGB object
+#         rgb = convert_color(hsv, sRGBColor)
+#         # get RGB values from object
+#         rgb = rgb.get_value_tuple()
+#         # store in array
+#         sorted_rgb[i] = rgb
+#
+#     return sorted_rgb
+
+# https://www.alanzucconi.com/2015/09/30/colour-sorting/
+def stepSort(r,g,b, repetitions=1):
+    lum = math.sqrt( .241 * r + .691 * g + .068 * b )
+
+    h, s, v = colorsys.rgb_to_hsv(r,g,b)
+
+    h2 = int(h * repetitions)
+    lum2 = int(lum * repetitions)
+    v2 = int(v * repetitions)
+
+    if h2 % 2 == 1:
+        v2 = repetitions - v2
+        lum = repetitions - lum
+
+    return (h2, lum, v2)
+
+
+#---------------------------------------------------------------------------------
+# STEP 1: RGB --> HSV, sort by hue, sorted-HSV --> RGB
+#---------------------------------------------------------------------------------
+width= 15
+height= 10
+numChoices = 88
+rgbVals = []
+munsellVals = []
+
+words = words[:10] + words[-10:]
+fig, ax = plt.subplots(len(words), 1, figsize=(width,height))
+
+#--------------------------------------------
+# read json file with all munsell/rgb values for each button response
+with open('../experiments/normingTask/json-data-files/munsell-gibson-V1-sorting.json') as f:
+  data = json.load(f)
+
+  for j in range(len(data)):
+      rgbVals.append(eval(data[j].items()[0][1]))
+      munsellVals.append(data[j].items()[1][1])
+
+# print(rgbVals)
+
+#--------------------------------------------
 for index, word in enumerate(words):
-    with open('%s.txt' % (word)) as fp: 
-        # get CIELab values associated with word
-        points = fp.readlines()
-        fp.close()
+    print(word)
+    rgb = []
+    greys = []
+    percentage = []
+    rgbDict = {} # keep track of index of response of a particular color
 
-    # store each point in a numpy array of dimensions num_points x LAB
-    hsv_points = np.empty([len(points),3])
-    for line_num, point in enumerate(points):
-        point = point.split(" ")
+    responses = selectResponses(df, word)
 
-        # create LAB object
-        lab = LabColor(float(point[0]), float(point[1]), float(point[2][:-1]))
-        # convert CIELab to HSV object
-        hsv = convert_color(lab, HSVColor)
-        # get HSV values from object
-        hsv = hsv.get_value_tuple()
-        # store in array
-        hsv_points[line_num, 0] = hsv[0]
-        hsv_points[line_num, 1] = hsv[1]
-        hsv_points[line_num, 2] = hsv[2]
+    # for each button response, count number of responses for that particular button color
+    # divide it by total number of responses to get percentage of bar
+    for i in range(numChoices):
+        numResponses = responses.count(i)
 
-        # sort by hue
-        sorted_hsv = hsv_points[np.argsort(hsv_points[:, 0])]
+        p = float(numResponses)/float(len(responses))
+        percentage.append(p)
 
-    # convert HSV to RGB
-    sorted_rgb = np.empty([len(points),], dtype=object)
-    for i in range(len(points)):
-        # create LAB object
-        hsv = HSVColor(sorted_hsv[i,0], sorted_hsv[i,1], sorted_hsv[i,2])
-        # convert HSV to RGB object
-        rgb = convert_color(hsv, sRGBColor)
-        # get RGB values from object
-        rgb = rgb.get_value_tuple()
-        # store in array
-        sorted_rgb[i] = rgb
-    
-    width= 8
-    height= 8
 
-    fig = plt.figure(figsize=(width,height))
-    ax = fig.add_subplot(111)
+        # if there's a response for this button response #
+        if numResponses != 0:
+            colorList = [float(rgbVals[i][0])/255, float(rgbVals[i][1])/255, float(rgbVals[i][2])/255] # 0-255 scale
+            colorTuple = (float(rgbVals[i][0])/255, float(rgbVals[i][1])/255, float(rgbVals[i][2])/255)
 
-    ratio = 1.0 / 2.8
-    count = math.ceil(math.sqrt(len(points)))
-    print(count)
-    x_count = count * ratio
-    y_count = count / ratio
+            # store TUPLE version of color in rgb dict
+            # key = to the rgb value, value = index in possible choices
+            rgbDict[colorTuple] = i
+
+            # if this color is not greyscale, add LIST version to rgb values to step sort
+            if munsellVals[i][0] != 'N':
+                rgb.append(colorList)
+
+            # if a shade of grey, add LIST version to separate array to be concatenated at end
+            else:
+                greys.append(colorList)
+
+
+    # step sort the non-greyscale colors
+    rgb.sort(key=lambda(r,g,b): stepSort(r,g,b,8))
+
+    # concatenate reversed greyscale values to the sorted colors array
+    rgb = rgb + greys[::-1]
+
+
+    # since we can't sort the percentage list using the stepSort function (different input types)
+    # iterate over rgbDict -> key = color, value = index of desired element of
+    # the percentage list -> append this value to a new list (widths)
+    widths = []
+    for color in rgb:
+        # convert color to tuple
+        t = (color[0], color[1], color[2])
+
+        widths.append(percentage[rgbDict[t]])
+
+    #--------------------------------------------
+    # make plots
+    #--------------------------------------------
     x = 0
     y = 0
-    w = 1 / x_count
-    h = 1 / y_count
+    w = 0.005
+    h = 1
+    c = 0
 
-    for i in range(len(points)):
-        pos = (x / x_count, y / y_count)
-        ax.add_patch(patches.Rectangle(pos, w, h, color=sorted_rgb[i]))
-        #ax.annotate(c,xy=pos,fontsize=10)
-        if y >= y_count-1:
-            x += 1
-            y = 0
-        else:
-            y += 1
-            
+    # iterate over percentage values for this word
+    # X percent of the bar should be of color associated with that button response
+    for w in widths:
 
-    plt.yticks([])
-    plt.xticks([])
-    plt.savefig('%s-swatches' % (word),bbox_inches='tight',dpi=300)
-    #plt.show()
+        pos = (x, y)
+        # if this index in possible choices has a percentage value associated with it
+        # add a patch for this color proportional to it's percentage response
+        if width != 0:
+            ax[index].add_patch(patches.Rectangle(pos, w, h, color=rgb[c]))
+            # increment to next color in rgb array
+            c += 1
+
+        # start next block at previous x + width of rectangle this rectangle
+        x += w
+
+        ax[index].get_xaxis().set_ticks([])
+        ax[index].get_yaxis().set_ticks([])
+        ax[index].set_ylabel(word, fontsize='x-small', rotation='horizontal')
+
+
+plt.savefig('stepSort-block1Responses-continuous.png',bbox_inches='tight',dpi=300)
+# plt.show()
