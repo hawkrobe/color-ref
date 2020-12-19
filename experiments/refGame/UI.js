@@ -110,8 +110,7 @@ function initColorGrid(game) {
           'background' : 'rgb' + stim.rgb,
           'height' : '50px',
         })
-        .attr({'id' : stim.munsell});
-    console.log(stim);
+        .attr({'id' : stim.id});
     blockDiv.append(colorDiv);
 
     // append and reset at end of block of 4 colors
@@ -142,34 +141,27 @@ function drawScreen (game) {
 };
 
 function reset (game, data) {
-  $('#scoreupdate').html(" ");
+  // update score & trial counters
+  $("#score-counter").text('Total bonus: $' + String(game.data.score.toFixed(2)));
+  $('#trial-counter').empty().append("Trial\n" + (game.trialNum + 1) + "/" + game.numTrials);
+
+  // clear display elements
   $("#color-picker-grid").html("");
   $("#word-grid").html("");
-  if(game.trialNum + 1 > game.numTrials) {
-    $('#roundnumber').empty();
-    $('#instructs').empty()
-      .append("Round\n" + (game.trialNum + 1) + "/" + game.numTrials);
-  } else {
-    $('#feedback').empty();
-    $('#roundnumber').empty()
-      .append("Round\n" + (game.trialNum + 1) + "/" + game.numTrials);
-  }
-
+  $('#feedback').empty();
   $('#main-div').show();
 
-  // reset labels
-  // Update w/ role (can only move stuff if agent)
+  // reset role header/instruct (allows for switching roles)
   $('#role').empty().append("You are the " + game.my_role + '.');
-  $('#instructs').empty();
-  if(game.my_role === game.playerRoleNames.role1) {
-    $('#instructs')
-      .append("<p>Fill in the question so your partner</p> " +
-              "<p>can help you complete the highlighted combo!</p>");
-  } else if(game.my_role === game.playerRoleNames.role2) {
-    $('#instructs')
-      .append("<p>After your partner types their question, </p>"
-              + "<p>pick a color!</p>");
-  }
+  const instruct = game.my_role === game.playerRoleNames.role1 ? (
+    "<p>Click on a color that will allow your partner to pick the highlighted word!</p>"
+  ) : (
+    "<p>After your partner sends you a color, click on the word \
+        you think they're trying to communicate.</p>"
+  );
+  $('#instructs').empty().append(instruct);
+
+  // draw everything
   drawScreen(game);
 }
 
