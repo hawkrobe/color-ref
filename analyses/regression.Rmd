@@ -9,12 +9,12 @@ library(knitr)
 library(scales)
 library(xtable)
 library(broom)
-library(ggthemes)
 ```
 
 ```{r}
 d = read_csv('../data/norming/compiled-variance-entropy-glasgowRatings.csv') 
 ```
+
 ```{r}
 filteredData = d %>%
   filter(imageability != 'N/A') %>%
@@ -36,12 +36,16 @@ filteredData %>%
 ```{r}
 scatter.smooth(x=filteredData$variance, y=filteredData$imageability)
 scatter.smooth(x=filteredData$variance, y=filteredData$concreteness)
+scatter.smooth(x=filteredData$entropy, y=filteredData$imageability)
+scatter.smooth(x=filteredData$entropy, y=filteredData$concreteness)
 ```
 
 # Examine relationship between DVs
 
 ```{r}
 cor(filteredData$entropy, filteredData$variance, method = 'spearman')
+cor(filteredData$entropy, filteredData$concreteness, method = 'spearman')
+cor(filteredData$entropy, filteredData$imageability, method = 'spearman')
 ```
 
 # Build and diagnose linear model for IMAGEABILITY
@@ -49,7 +53,7 @@ cor(filteredData$entropy, filteredData$variance, method = 'spearman')
 ```{r}
 # correlation
 cat('variance-imageability correlation = ', cor(filteredData$variance, filteredData$imageability))
-cor.test()
+cor.test(filteredData$variance, filteredData$imageability)
 
 # get summary stats
 linearModIMAG <- lm(log(variance) ~ imageability, data=filteredData) # imageability as a function of variance
@@ -75,22 +79,22 @@ model_p <- pf(f[1], f[2], f[3], lower=FALSE)
 # Build and diagnose linear model for CONCRETENESS
 ```{r}
 # correlation
-cat('variance-concreteness correlation = ', cor(filteredData$variance, filteredData$concreteness))
+cat('entropy-concreteness correlation = ', cor(filteredData$entropy, filteredData$concreteness))
 cat('concreteness-imagability correlation = ', cor(filteredData$imageability, filteredData$concreteness))
-cor.test(filteredData$variance, filteredData$concreteness)
+cor.test(filteredData$entropy, filteredData$concreteness)
 
 # get summary stats
 # concreteness as a function of variance
 linearModImg <- filteredData %>%
-  lm(log(variance) ~ imageability,
+  lm(log(entropy) ~ imageability,
      data = .)
 
 linearModConcrete <- filteredData %>%
-  lm(log(variance) ~ concreteness, 
+  lm(log(entropy) ~ concreteness, 
      data=.) 
 
 linearModBoth <- filteredData %>%
-  lm(log(variance) ~ imageability + concreteness,
+  lm(log(entropy) ~ imageability + concreteness,
      data=.) 
 
 anova(linearModImg, linearModBoth)
@@ -100,10 +104,11 @@ print(cncSummary)
 ```
 
 ```{r}
-linearMod <- lm(imageability ~ variance + entropy, data=filteredData)
-summary(linearMod)
+linearMod <- lm(variance ~ imageability + concreteness, data=filteredData)
+print(summary(linearMod))
 
-plot(fitted(linearModIMAG), residuals(linearModIMAG))
+linearMod <- lm(entropy ~ imageability + concreteness, data=filteredData)
+print(summary(linearMod))
 ```
 
 
@@ -116,4 +121,10 @@ library(lme4)
 mixedModel <- lmer(imageability ~ variance + (1|word), data=filteredData, control=lmerControl(check.nobs.vs.nlev = "ignore", check.nobs.vs.rankZ = "ignore", check.nobs.vs.nRE="ignore"))
 summary(mixedModel)
 ```
+
+```{r}
+ordered <- filteredData[order( filteredData[,3] ),]
+barplot(ordered$entropy, main="Entropy", xlab="words")
+```
+
 
