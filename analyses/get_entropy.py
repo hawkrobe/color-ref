@@ -4,6 +4,7 @@ import pandas as pd
 from statistics import mean
 from scipy.stats import entropy
 
+# https://tdhopper.com/blog/entropy-of-a-discrete-probability-distribution
 # #---------------------------------------------------------------------------------
 # STEP 0: make points x LAB array of dummy points
 

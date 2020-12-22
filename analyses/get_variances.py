@@ -26,7 +26,7 @@ block = "both"
 uniqueWords = set(df['word'].to_list())
 colorWords = set(['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'])
 targetWords = list(uniqueWords-colorWords)
-print(len(targetWords))
+print(len(uniqueWords))
 
 #---------------------------------------------------------------------------------
 # HELPER FUNCTIONS
@@ -96,11 +96,11 @@ argsorted = np.argsort(all_variances)
 sortedWords = np.array(targetWords)[argsorted]
 sortedVariances = np.sort(all_variances)
 
-df2 = pd.DataFrame({'word':sortedWords, block:sortedVariances})
-cols = ['word', block]
-df2 = df2[cols]
-print(df2)
-# save df as csv
-df2.to_csv("./variance/sorted-variances-all-%s.csv" % block, index=False)
+# df2 = pd.DataFrame({'word':sortedWords, block:sortedVariances})
+# cols = ['word', block]
+# df2 = df2[cols]
+# print(df2)
+# # save df as csv
+# df2.to_csv("./variance/sorted-variances-all-%s.csv" % block, index=False)
 
 #---------------------------------------------------------------------------------

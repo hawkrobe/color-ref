@@ -100,12 +100,12 @@ divergenceABS = computeDivergence(wordsABS, probabilitiesABS)
 
 
 
-
-
 #---------------------------------------------------------------------------------
 #---------------------------------------------------------------------------------
 # REJECTION SAMPLE WORDS BASED ON KL DIVERGENCE: HELPER FUNCTIONS
 #---------------------------------------------------------------------------------
+
+# NOTE: CHANGE THE wordsXXX and divergenceXXX variables to appropriate set !!!
 def getDivergences(ctx):
     div = []
     # get divergence values for this sample
