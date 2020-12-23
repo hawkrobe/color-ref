@@ -55,6 +55,7 @@ class ServerRefGame extends ServerGame {
                  tmp_abstract.pop()),
         blockNum : blockNum,
         trialNum : blockNum * 8 + trialInBlock,
+        numTrials: this.numTrials,
         roles: _.zipObject(_.map(this.players, p => p.id), roleNames)
       };
     });

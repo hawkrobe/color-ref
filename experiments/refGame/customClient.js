@@ -12,7 +12,8 @@ function updateState (game, data){
   game.target = data.currStim.target;  
   game.active = data.active;
   game.blockNum = data.blockNum;
-  game.trialNum = data.trialNum;  
+  game.trialNum = data.currStim.trialNum;
+  game.numTrials = data.currStim.numTrials;
   game.roundStartTime = Date.now();
   game.messageSent = false;
   game.responseSent = false;
