@@ -31,7 +31,9 @@ var customEvents = function(game) {
 
   game.socket.on('updateScore', function(data){
     $('#' + game.target).removeClass('distractor').addClass('target');
-
+    $('#' + game.target + '_targetarrow').addClass('target-arrow').text('target');
+    $('#' + data.outcome).removeClass('distractor').addClass('selected');
+    $('#' + data.outcome + '_selectedarrow').addClass('selected-arrow').text('selected');
     if(data.outcome != game.target & game.my_role == 'listener')
       $('#' + data.outcome).css({'text-decoration': 'line-through'});
 

@@ -1,3 +1,8 @@
+.distractor {
+    background: grey !important;
+    color: #CCCCCC !important;
+}
+
 .target {
     border-width: 10px !important;
     border-color: #A1A1A1!important;
@@ -5,12 +10,29 @@
     color: black !important;
 }
 
-.distractor {
-    background: grey !important;
-    color: #CCCCCC !important;
+.target-arrow {
+    position:absolute;
+    bottom:-45px;
+    color:white;
+    font-size:20px;
+    text-align:center;
+    left:0;
+    right:0;
+    font-weight: normal !important;
 }
 
-.target:after{
+.selected-arrow {
+    position:absolute;
+    left:0;
+    right:0;
+    top:-40px;
+    color:white;
+    text-align:center;
+    font-size:20px;
+    font-weight: normal !important;
+}
+
+.target-arrow:after{
     height:0;
     width:0;
     position:absolute;
@@ -28,7 +50,7 @@
     border-bottom-color: #FFFFFF;
     border-left-color: transparent;
     padding: 0px;
-    bottom: -15px;
+    bottom: 24px;
     z-index: 101;
     right: 50%;
     margin-top: 0px;
@@ -38,7 +60,7 @@
     content: '';
 }
 
-.target:before {
+.selected-arrow:before {
     height:0;
     width:0;
     position:absolute;
@@ -51,12 +73,12 @@
     border-right-style: solid;
     border-bottom-style: solid;
     border-left-style: solid;
-    border-top-color: transparent;
+    border-top-color: #FFFFFF;
     border-right-color: transparent;
-    border-bottom-color: #333;
+    border-bottom-color: transparent;
     border-left-color: transparent;
     padding: 0px;
-    bottom: -14px;
+    bottom:-34px;
     z-index: 101;
     margin-top: 0px;
     margin-right: -16px;

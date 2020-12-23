@@ -81,8 +81,13 @@ function initStimGrid(game) {
     // Display target to speaker
     if(word == game.target && game.my_role == game.playerRoleNames.role1) {
       div.addClass('target font-weight-bold');
+      div.append($('<span/>').attr({'id' : word + '_targetarrow'})
+                 .addClass('target-arrow').text('target'));
+      div.append($('<span/>').attr({'id' : word + '_selectedarrow'}));
     } else {
       div.addClass('distractor');
+      div.append($('<span/>').attr({'id' : word + '_targetarrow'}));
+      div.append($('<span/>').attr({'id' : word + '_selectedarrow'}));
     }
     $("#word-grid").append(div);
   });
