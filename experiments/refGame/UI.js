@@ -48,25 +48,24 @@ function setupListenerHandlers(game) {
       var clickedId = $(this).attr('id');
       game.responseSent = true;
       game.socket.send('sendResponse.' + clickedId);
-      $(this).addClass('bg-dark');
-      $('#' + game.target).addClass('bg-warning');
     }
   });
 }
 
 function setupSpeakerHandlers(game) {
-  $('div.pressable-color').click(function(event) {
+  $('.pressable-color')
+    .hover(
+      function() {if(!game.messageSent) $(this).addClass("btn-hover"); },
+      function() { $(this).removeClass("btn-hover"); }
+    );
+
+
+  $('.pressable-color').click(function(event) {
     if(!game.messageSent) {
       // Only let listener click once they've heard answer back
-      var clickedId = $(this).attr('id');
-      console.log($(this));
+      $(this).removeClass("btn-hover");
       game.messageSent = true;
-      game.socket.send('sendColor.' + clickedId);
-      $(this).css({
-        'border-color' : '#FFFFFF',
-        'border-width' : '2px',
-        'border-style' : 'solid'
-      });
+      game.socket.send('sendColor.' + $(this).attr('id'));
     }
   });
 }
@@ -81,9 +80,11 @@ function initStimGrid(game) {
 
     // Display target to speaker
     if(word == game.target && game.my_role == game.playerRoleNames.role1) {
-      div.addClass('border border-dark');
-      div.addClass('font-weight-bold');
-      div.addClass('bg-light');
+      div.addClass('border border-dark')
+        .addClass('font-weight-bold')
+        .addClass('bg-light')
+        .addClass('border-thick');
+    
     } else {
       div.addClass('border border-light');
       div.addClass('bg-white');
@@ -100,24 +101,35 @@ function initStimGrid(game) {
 
 // Add objects to grid
 function initColorGrid(game) {
-  // bootstrap only allows subdivisions of 12 columns, so we nest rows to get even grid (i.e. 8 = 2 sets of 4=3/12).
-  let blockDiv = $('<div/>').addClass('row');
+  let blockDiv;// = $('<div/>').addClass('btn-group');
   _.forEach(munsell, (stim, i) => {
-    var colorDiv = $('<div/>')
+    var row = Math.floor(i/11);
+    var col = i % 11;
+
+    // append and reset at end of row
+    if (col == 0) {
+      $("#color-picker-grid").append(blockDiv);
+      blockDiv = $('<div/>').addClass('btn-group').css({'margin-bottom':'8px'});
+
+      // offset odd rows to make 'brick' wall
+      if(row % 2 == 0) 
+        blockDiv.css({'margin-left': '40px'});
+    }
+    blockDiv.append(
+      $('<div/>')
         .addClass('pressable-color')
-        .addClass('col-3')
         .css({
+          'display' : 'inline-block',
           'background' : 'rgb' + stim.rgb,
           'height' : '50px',
+          'width' : '80px',
+          'margin' : '0px 4px'
         })
-        .attr({'id' : stim.id});
-    blockDiv.append(colorDiv);
-
-    // append and reset at end of block of 4 colors
-    if(i % 4 == 3) {
-      $("#color-picker-grid").append($('<div/>').addClass('col-6').append(blockDiv));
-      blockDiv = $('<div/>').addClass('row');
-    }
+        .attr({
+          'id' : stim.id,
+          'data-choice' : stim.id
+        })
+    );
   });
 
   // Allow listener to click on things

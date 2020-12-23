@@ -1,3 +1,11 @@
+.border-thick {
+    border-width: thick !important;
+}
+
+.btn-hover {
+    outline: 4px solid #000;
+}
+
 #waiting {
     height: 5%;
     width: 50%;

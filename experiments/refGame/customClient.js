@@ -23,15 +23,15 @@ var customEvents = function(game) {
   game.socket.on('colorReceived', function(data){
     game.messageSent = true;
     $('#' + data.id).css({
-      'border-color' : '#FFFFFF', 
-      'border-width' : '2px', 
-      'border-style' : 'solid'
+      'outline-color' : '#000000', 
+      'outline-width' : '8px', 
+      'outline-style' : 'solid'
     });
   });
 
   game.socket.on('updateScore', function(data){
-    $('#' + data.outcome).addClass('bg-dark');
-    $('#' + game.target).addClass('bg-warning');
+    $('#' + data.outcome).removeClass('bg-white').addClass('bg-success border-thick');
+    //$('#' + game.target).addClass('bg-warning');
     game.data.score += data.outcome == game.target ? 0.02 : 0;
   });
 
