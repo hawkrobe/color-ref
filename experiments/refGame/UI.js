@@ -42,12 +42,11 @@ function dropdownTip(data){
 }
 
 function setupListenerHandlers(game) {
-  $('div.pressable-text').click(function(event) {
+  $('.pressable-text').click(function(event) {
     // Only let listener click a word once they've heard answer back
     if(game.messageSent & !game.responseSent) {
-      var clickedId = $(this).attr('id');
       game.responseSent = true;
-      game.socket.send('sendResponse.' + clickedId);
+      game.socket.send('sendResponse.' + $(this).attr('id'));
     }
   });
 }
@@ -74,20 +73,16 @@ function initStimGrid(game) {
   // Add objects to grid
   _.forEach(_.shuffle(game.context), (word, i) => {
     var div = $('<div/>')
-        .addClass('col h2 pressable-text border rounded-pill')
+        .addClass('col h2 border pressable-text rounded-pill')
+        .css({'margin' : '0px 20px'})
         .append($('<div/>').addClass('box text-center').text(word))
         .attr({'id' : word});
 
     // Display target to speaker
     if(word == game.target && game.my_role == game.playerRoleNames.role1) {
-      div.addClass('border border-dark')
-        .addClass('font-weight-bold')
-        .addClass('bg-light')
-        .addClass('border-thick');
-    
+      div.addClass('target font-weight-bold');
     } else {
-      div.addClass('border border-light');
-      div.addClass('bg-white');
+      div.addClass('distractor');
     }
     $("#word-grid").append(div);
   });

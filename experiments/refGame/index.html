@@ -9,15 +9,13 @@
           href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
           integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
           crossorigin="anonymous">
+
     <!-- Load custom css after bootstrap -->
     <link rel="stylesheet" href="/dist/css/custom.css" type="text/css">
-
-    
     <script type="text/javascript" src="dist/js/bundle.js"></script>
-
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font: 13px Helvetica, Arial; }
+        * { margin: 0; padding: 0; box-sizing: border-box}
+        body { font: 13px Helvetica, Arial; background: #0F0F0F; color:#FFFFFF}
         #messages li { padding: 5px 10px; }
         /*#messages li:nth-child(odd) { background: #eee; }*/
     </style>
@@ -41,7 +39,7 @@
         </div>
 
         <div class="row align-items-center" id="word-grid"
-             style="height: 100px"></div>
+             style="width:1000px;height: 100px"></div>
         <div class="row" id="color-picker-grid"></div>
         <div class="row pt-2 text-center" id="trial-info">
           <div class="col counter" id="trial-counter">
