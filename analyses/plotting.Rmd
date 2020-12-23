@@ -1,0 +1,29 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(tidyverse)
+library(knitr)
+library(scales)
+library(xtable)
+library(broom)
+```
+
+```{r}
+d = read_csv('../data/norming/compiled-variance-entropy-glasgowRatings.csv') 
+```
+```{r}
+filteredData = d %>%
+  filter(imageability != 'N/A') %>%
+  mutate(imageability = as.numeric(imageability),
+         concreteness = as.numeric(concreteness))
+```
+
+```{r}
+var = filteredData$variance
+entp = filteredData$entropy
+scatter.smooth(x=var, y=entp, cex=0.5)
+text(var, entp+0.1, label=words, cex=0.5)
+```
+
