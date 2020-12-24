@@ -1,6 +1,6 @@
 global.__base = __dirname + '/';
 
-var 
+const 
     use_https     = true,
     argv          = require('minimist')(process.argv.slice(2)),
     https         = require('https'),
@@ -8,7 +8,6 @@ var
     app           = require('express')(),
     _             = require('underscore'),
     RefGameServer = require('./src/server.js');
-
 let gameport;
 let expPath;
 
@@ -27,19 +26,21 @@ if(argv.expname) {
   expPath = '.';
   console.log('no expname specified: using .\nUse the --expname flag to change');
 }
-var refGameServer = new RefGameServer(expPath);  
 
+const refGameServer = new RefGameServer(expPath);  
+let io;
+let server;
 try {
-  var pathToCerts = '/etc/apache2/ssl/rxdhawkins.me';
+  const pathToCerts = '/etc/apache2/ssl/rxdhawkins.me';
   var privateKey  = fs.readFileSync(pathToCerts + '.key'),
       certificate = fs.readFileSync(pathToCerts + '.crt'),
-      options     = {key: privateKey, cert: certificate},
-      server      = require('https').createServer(options,app).listen(gameport),
-      io          = require('socket.io')(server);
+      options     = {key: privateKey, cert: certificate};
+  server      = require('https').createServer(options,app).listen(gameport),
+  io          = require('socket.io')(server, {pingTimeout: 3600000});
 } catch (err) {
   console.log("cannot find SSL certificates; falling back to http");
-  var server      = app.listen(gameport),
-      io          = require('socket.io')(server);
+  server      = app.listen(gameport),
+  io          = require('socket.io')(server, {pingTimeout: 3600000}); 
 }
 
 var utils = require('./src/sharedUtils.js');

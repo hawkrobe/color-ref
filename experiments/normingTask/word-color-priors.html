@@ -44,7 +44,7 @@
     function setupGame () {
       var socket = io.connect();
       var timeline = [];
-      var iterationName = 'testing'
+      var iterationName = 'full_sample'
       var wordSetID = '0'
       var wordSet = _.clone(wordSets[wordSetID])
       var turkInfo = jsPsych.turk.turkInfo();
@@ -161,7 +161,7 @@
 
       var valid_responses_red = [0, 9, 11, 12, 20, 22, 23, 30, 31, 33, 34, 42, 44, 45, 52, 53, 55, 56, 64, 66, 67, 74, 75, 77, 78, 85, 86];
       // var valid_responses_green = [2, 3, 4, 5, 14, 15, 16, 25, 26, 27. 36, 37, 38, 47, 48, 49, 58, 59, 60, 69, 70, 71, 80, 81, 82, 83];
-      var valid_responses_blue = [4, 5, 6, 15, 16, 17, 18, 26, 27, 28, 37, 38, 39, 40, 48, 49, 50, 59, 60, 61, 62, 70, 71, 72, 81, 82, 83, 84];
+      var valid_responses_blue = [4, 5, 6, 15, 16, 17, 18, 26, 27, 28, 29, 37, 38, 39, 40, 48, 49, 50, 51, 59, 60, 61, 62, 70, 71, 72, 73, 81, 82, 83, 84];
 
       var instructions = {
       	type: "html-keyboard-response",
@@ -508,7 +508,6 @@
                 stimulus: function() {
                   var lastTrialColor = jsPsych.data.get().last(1).values()[0].button_pressed;
                   var color = munsell[lastTrialColor].rgb
-                  console.log(color)
                   return '<div style="height: 100px;width:100%;display: table;background-color: rgb' + color + ';"><h2 style="color: transparent;background: inherit;-webkit-background-clip: text;height: 100%;filter: invert(1) grayscale(1) contrast(100);">'+ shuffledTargets[i].word +'</h2></div>'
                 },
                 labels: ['<p style="color:black"><strong>0%<br>(no one)</strong></p>',
@@ -517,7 +516,8 @@
                 prompt: '<br> <br><p>What percentage of <strong>other people</strong> do you expect to share your color association for this word?</p>',
                 button_label: 'Next',
                 require_movement: true,
-                data: {'condition' : 'block2_expectation_trial'}
+                data: {'condition' : 'block2_expectation_trial',
+		       'word' : shuffledTargets[i].word}
               }
             ]
           };

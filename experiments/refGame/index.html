@@ -9,15 +9,13 @@
           href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
           integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
           crossorigin="anonymous">
+
     <!-- Load custom css after bootstrap -->
     <link rel="stylesheet" href="/dist/css/custom.css" type="text/css">
-
-    
     <script type="text/javascript" src="dist/js/bundle.js"></script>
-
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font: 13px Helvetica, Arial; }
+        * { margin: 0; padding: 0; box-sizing: border-box}
+        body { font: 13px Helvetica, Arial; background: #0F0F0F; color:#FFFFFF}
         #messages li { padding: 5px 10px; }
         /*#messages li:nth-child(odd) { background: #eee; }*/
     </style>
@@ -33,21 +31,25 @@
         we recommend returning the HIT <br />
         and trying again later.
       </p>
-      <div id='main-div' class='main_div pt-3' style="display:none">
+      <div id='pre-post-div' class='main_div pt-3' style="display:none;">
+      </div>
+      <div id='main-div' class='main_div pt-3' style="display:none; width:1000px; margin: 0 auto;">
         <div class='row'>
-          <h3 class="col" id='role'></h3>
-          <p class="col" id='instructs'></p>
-          <p class="col" id='feedback'></p>
+          <div class="col">
+            <h3 id='role'></h3>
+            <p class="col" id='instructs'></p>
+          </div>
+          <div class="col" id='feedback'></div>
         </div>
 
         <div class="row align-items-center" id="word-grid"
-             style="height: 100px"></div>
+             style="width:1000px;height: 150px"></div>
         <div class="row" id="color-picker-grid"></div>
         <div class="row pt-2 text-center" id="trial-info">
-          <div class="col counter" id="trial-counter">
+          <h5 class="col counter" id="trial-counter">
             <p>Waiting Room</p>
-          </div>
-          <div class="col counter" id="score-counter"></div>
+          </h5>
+          <h5 class="col counter" id="score-counter"></h5>
         </div>
     </div>
 

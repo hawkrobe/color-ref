@@ -7,18 +7,28 @@ var ServerGame = require(__base + 'src/game.js')['ServerGame'];
 class ServerRefGame extends ServerGame {
   constructor(config) {
     super(config);
+    const concretes = _.clone(_.sampleSize(require('../../data/contexts/divergence-rejection-sampling/concrete-contexts.json'), 2));
+    const abstracts = _.clone(_.sampleSize(require('../../data/contexts/divergence-rejection-sampling/abstract-contexts.json'), 2));
+    console.log(concretes);
     this.contexts = {
-      'concrete' : _.clone(_.sample(require('../../data/contexts/divergence-rejection-sampling/concrete-contexts.json'))),
-      'abstract' : _.clone(_.sample(require('../../data/contexts/divergence-rejection-sampling/abstract-contexts.json')))
+      'concrete' : concretes[0],
+      'abstract' : abstracts[0],
+    };
+    this.controls = {
+      'concrete' : concretes[1],
+      'abstract' : abstracts[1]
     };
     this.numBlocks = 6;
     this.numTrialsInBlock = 8;
+    this.ready = false;
     this.numTrials = this.numBlocks * this.numTrialsInBlock;
     this.firstRole = _.sample(['speaker', 'listener']);
     this.trialList = this.makeTrialList();
   }
 
-  customEvents (socket) {}
+  customEvents (socket) {
+    
+  }
 
   // *
   // * TrialList creation
@@ -33,12 +43,36 @@ class ServerRefGame extends ServerGame {
 
   makeTrialList () {
     var trialList = [];
+    trialList.push(this.makeTestSequence('pre'));
     _.forEach(_.range(this.numBlocks), blockNum => {
       trialList.push(...this.sampleBlock(blockNum));
     });
+    trialList.push(this.makeTestSequence('post'));
     return(trialList);
   };
 
+  makeTestSequence (phase){
+    const trialSeq = [];
+    _.forEach(['concrete', 'abstract'], condition => {
+      _.forEach(['test', 'control'], set => {
+        const words = (set == 'test' ? this.contexts[condition]['words'] :
+                       this.controls[condition]['words']);
+        _.forEach(words, word => {
+          trialSeq.push({phase: phase, target: word, condition: condition,
+                         set: set});
+        });
+      });
+    });
+    return {
+      phase: phase,
+      numTrials: this.numTrials,
+      roles: _.zipObject(_.map(this.players, p => p.id), ['picker', 'picker']),
+      trialSeq : _.map(_.shuffle(trialSeq), (trial, i) => {
+        return _.extend({}, trial, {trialNum: i});
+      })
+    };
+  }
+  
   sampleBlock (blockNum) {
     var conditionList = this.getRandomizedConditions();
     var tmp_concrete = _.shuffle(_.clone(this.contexts['concrete']['words']));
@@ -48,6 +82,7 @@ class ServerRefGame extends ServerGame {
                        _.values(this.playerRoleNames));
       return {
         condition: conditionName,
+        phase: 'refGame',
         context: this.contexts[conditionName]['words'],
         context_id: conditionName + '_' + this.contexts[conditionName]['id'],
         target: (conditionName == 'concrete' ?
@@ -55,6 +90,7 @@ class ServerRefGame extends ServerGame {
                  tmp_abstract.pop()),
         blockNum : blockNum,
         trialNum : blockNum * 8 + trialInBlock,
+        numTrials: this.numTrials,
         roles: _.zipObject(_.map(this.players, p => p.id), roleNames)
       };
     });
@@ -74,11 +110,7 @@ class ServerRefGame extends ServerGame {
     var target = gc.getPlayer(client.userid);
     var others = gc.getOthers(client.userid);
     switch(message_type) {
-
-
     case 'sendColor' :
-      console.log('sending color');
-      console.log(message_parts);
       if(client.game.playerCount == gc.playersThreshold && !gc.paused) {
         _.map(all, p => p.player.instance.emit( 'colorReceived', {
           user: client.userid, id: message_parts[1]
@@ -86,17 +118,20 @@ class ServerRefGame extends ServerGame {
       }
       break;
 
+    case 'finishedPretest' :
+      target.ready = true;
+      //console.log(_.map(all, p => p.player));
+      console.log('num players', all.length);
+      console.log('ready vector', _.map(all, p => p.player.ready))
+      if(_.every(all, p => p.player.ready))
+        gc.newRound(3000);
+      break;
+      
     case 'sendResponse' :
       _.map(all, p => p.player.instance.emit('updateScore', {
         outcome: message_parts[1]
       }));
-      setTimeout(function() {
-        _.map(all, function(p){
-          p.player.instance.emit( 'newRoundUpdate', {user: client.userid} );
-        });
-        gc.newRound();
-      }, 3000);
-
+      gc.newRound(3000);
       break;
 
     case 'exitSurvey' :
