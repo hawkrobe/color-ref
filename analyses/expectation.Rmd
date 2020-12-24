@@ -45,7 +45,7 @@ boxplot(sliderResponse~word, data=selectedWords, main="Expected Agreement",
 selectedWords <- filter(dTruth, word %in% c("lemon", "sun", "tomato", "fire", "apple", "spinach", "vegetable", "tree", "daffodil"))
 
 boxplot(groundTruth~word, data=selectedWords, main="Actual Agreement",
-   xlab="Words", ylab="% of population expected to share one's color association", ylim = c(0, 100))
+   xlab="Words", ylab="% of population actually sharing association", ylim = c(0, 100))
 ```
 
 
@@ -61,7 +61,7 @@ boxplot(groundTruth~word, data=selectedWords, main="Actual Agreement",
 <!-- f = read_csv('./entropy/sorted-entropies-all-both.csv')  -->
 
 <!-- f = f %>% -->
-<!--   mutate(both = as.numeric(both)) -->
+<!--   mutate(both = as.numeric(both)) -
 
 <!-- scatter.smooth(x=f$both, y=avgExpectation$x, xlab = "Entropy of participants' color associations for all words", ylab = "Average % of population expected to share one's color association") -->
 <!-- ``` -->
