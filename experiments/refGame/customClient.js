@@ -4,8 +4,6 @@ var UI = require('./UI.js');
 // server_send_update function in game.core.js
 // -- data: packet send by server
 function updateState (game, data){
-  console.log('id: ' + game.my_id);
-  console.log(data.currStim.roles);
   game.my_role = data.currStim.roles[game.my_id];
   game.condition = data.currStim.condition;
   game.context = data.currStim.context;
@@ -30,16 +28,41 @@ var customEvents = function(game) {
     });
   });
 
+  // at the end of the round, show feedback
   game.socket.on('updateScore', function(data){
+    // show target
     $('#' + game.target).removeClass('distractor').addClass('target');
     $('#' + game.target + '_targetarrow').addClass('target-arrow').text('target');
+
+    // show object that was selected
     $('#' + data.outcome).removeClass('distractor').addClass('selected');
     $('#' + data.outcome + '_selectedarrow').addClass('selected-arrow').text('selected');
-    if(data.outcome != game.target & game.my_role == 'listener')
-      $('#' + data.outcome).css({'text-decoration': 'line-through'});
 
-    // show arrow above 
+    // write a feedback message
+    let mainMsg;
+    let subMsg;    
+    if(data.outcome != game.target) {
+      mainMsg = "Oops, no bonus this time!";
+      subMsg = (game.my_role == 'listener' ?
+                "You picked <strong>" + data.outcome + "</strong> \
+                 but the target was <strong>" + game.target + "</strong>.":
+                "Your partner picked <strong>" + data.outcome + "</strong> \
+                 instead of <strong>" + game.target + '</strong>.');
+    } else {
+      mainMsg = "Correct! You earned 2 points!";
+      subMsg = (game.my_role == 'listener' ?
+                "The target was <strong>" + game.target + "</strong>.":
+                "Your partner picked the target.");
+    }
+    $('#feedback').append($('<h3/>').html(mainMsg));
+    $('#feedback').append($('<p/>').html(subMsg));    
+
+    // increment score
     game.data.score += data.outcome == game.target ? 0.02 : 0;
+
+    // strike out selected text to emphasize error for listener
+    if(game.my_role == 'listener' && data.outcome != game.target)
+      $('#' + data.outcome).css({'text-decoration': 'line-through'});
   });
 
   game.socket.on('newRoundUpdate', function(data){
