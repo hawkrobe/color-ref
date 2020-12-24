@@ -4,14 +4,23 @@ var UI = require('./UI.js');
 // server_send_update function in game.core.js
 // -- data: packet send by server
 function updateState (game, data){
-  game.my_role = data.currStim.roles[game.my_id];
-  game.condition = data.currStim.condition;
-  game.context = data.currStim.context;
-  game.target = data.currStim.target;  
   game.active = data.active;
-  game.blockNum = data.blockNum;
-  game.trialNum = data.currStim.trialNum;
+  game.my_role = data.currStim.roles[game.my_id];
+  game.phase = data.currStim.phase;
   game.numTrials = data.currStim.numTrials;
+
+  // For pre- and post-tests, we get trialSeq bundle
+  if(game.phase != 'refGame') {
+    game.trialSeq = data.currStim.trialSeq;
+    game.currStim = game.trialSeq.pop();
+  } else {
+    game.currStim = data.currStim;
+  }
+  game.condition = game.currStim.condition;
+  game.context = game.currStim.context;
+  game.target = game.currStim.target;  
+  game.blockNum = game.currStim.blockNum;
+  game.trialNum = game.currStim.trialNum;
   game.roundStartTime = Date.now();
   game.messageSent = false;
   game.responseSent = false;
@@ -67,9 +76,13 @@ var customEvents = function(game) {
 
   game.socket.on('newRoundUpdate', function(data){
     game.getPlayer(game.my_id).message = "";
+    console.log('received data', data);
     if(data.active) {
       updateState(game, data);
-      UI.reset(game, data);
+      if(data.currStim.phase == 'refGame')
+        UI.resetRefGame(game, data);
+      else
+        UI.resetColorPicker(game, data);
     }
   });
 };
