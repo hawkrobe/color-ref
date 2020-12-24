@@ -58,15 +58,50 @@ function setupSpeakerHandlers(game) {
       function() { $(this).removeClass("btn-hover"); }
     );
 
-
   $('.pressable-color').click(function(event) {
     if(!game.messageSent) {
       // Only let listener click once they've heard answer back
       $(this).removeClass("btn-hover");
       game.messageSent = true;
-      game.socket.send('sendColor.' + $(this).attr('id'));
+      if(game.phase == 'refGame')
+        game.socket.send('sendColor.' + $(this).attr('id'));
+      else
+        advanceTestTrial(game, $(this).attr('id'));
     }
   });
+}
+
+function advanceTestTrial(game, clickedId) {
+  // measure rt
+  var end_time = new Date();
+  var rt = end_time - game.start_time;
+
+  // send data to store
+  var rgbArray = munsell[_.toInteger(clickedId)].rgb.slice(1,-1).split(', ');
+  game.socket.emit('data', {
+    "rt": rt,
+    "target": game.currStim.target,
+    "trialNum": game.currStim.trialNum,
+    "phase": game.currStim.phase,    
+    "condition": game.currStim.condition,
+    "set": game.currStim.set,    
+    "button_pressed": clickedId,
+    "response_r": _.toInteger(rgbArray[0]),
+    "response_g": _.toInteger(rgbArray[1]),
+    "response_b": _.toInteger(rgbArray[2]),
+    "response_munsell": munsell[_.toInteger(clickedId)].munsell
+  });
+
+  // if we're at end of pre-test, tell the server;
+  // otherwise, move to next trial
+  console.log('advancing,', game.trialSeq);
+  if(game.trialSeq.length == 0) {
+    console.log('finished');
+    game.socket.send('finishedPretest');
+  } else {
+    game.currStim = game.trialSeq.pop();
+    resetColorPicker(game);
+  }
 }
 
 function initStimGrid(game) {
@@ -100,15 +135,15 @@ function initStimGrid(game) {
 }
 
 // Add objects to grid
-function initColorGrid(game) {
-  let blockDiv;// = $('<div/>').addClass('btn-group');
+function initColorGrid(game, display_element) {
+  let blockDiv;
   _.forEach(munsell, (stim, i) => {
     var row = Math.floor(i/11);
     var col = i % 11;
 
     // append and reset at end of row
     if (col == 0) {
-      $("#color-picker-grid").append(blockDiv);
+      display_element.append(blockDiv);
       blockDiv = $('<div/>').addClass('btn-group').css({'margin-bottom':'8px'});
 
       // offset odd rows to make 'brick' wall
@@ -133,9 +168,7 @@ function initColorGrid(game) {
   });
 
   // Allow listener to click on things
-  game.selections = [];
-  if (game.my_role === game.playerRoleNames.role1) {
-    console.log('setup handler');
+  if (game.phase == 'pre' || game.phase == 'post' || game.my_role === game.playerRoleNames.role1) {
     setupSpeakerHandlers(game);
   }
 }
@@ -147,17 +180,19 @@ function drawScreen (game) {
   } else {
     $('#waiting').html('');
     confetti.reset();
-    initColorGrid(game);
+    initColorGrid(game, $('#color-picker-grid'));
     initStimGrid(game);
   }
 };
 
-function reset (game, data) {
+function resetRefGame (game, data) {
   // update score & trial counters
   $("#score-counter").text('Total bonus: $' + String(game.data.score.toFixed(2)));
   $('#trial-counter').empty().append("Trial\n" + (game.trialNum + 1) + "/" + game.numTrials);
 
   // clear display elements
+  $('#pre-post-div').html("");
+  $('#pre-post-div').hide();
   $("#color-picker-grid").html("");
   $("#word-grid").html("");
   $('#feedback').empty();
@@ -177,9 +212,22 @@ function reset (game, data) {
   drawScreen(game);
 }
 
+function resetColorPicker (game) {
+  // display stimulus
+  $('#main-div').hide();
+  $('#waiting').html('');
+  $("#pre-post-div").html("");
+  $('#pre-post-div').show();
+  $('#pre-post-div').append('<div id="jspsych-html-button-response-stimulus"><h2>' +
+                            game.currStim.target + '</h2></div>');
+  game.messageSent = false;
+  initColorGrid(game, $('#pre-post-div'));
+};
 
 module.exports = {
   confetti,
   drawScreen,
-  reset
+  resetRefGame,
+  resetColorPicker
 };
+
