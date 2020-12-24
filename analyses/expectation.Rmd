@@ -11,37 +11,44 @@ library(xtable)
 library(broom)
 ```
 
-
+# Expectation ratings box plot
 ```{r}
-d = read_csv('./expectation/expectations-by-condition.csv') 
-```
+dExpectation = read_csv('./expectation/expectations-by-condition.csv') 
 
-# using all data
-```{r}
 library("ggpubr")
-ggboxplot(d, y = "sliderResponse", 
-          color = "condition", palette = c("#00AFBB", "#E7B800"),
-          order = c("abstract", "concrete"),
+ggboxplot(dExpectation, y = "sliderResponse", main= "Expected Agreement by Condition",
+          color = "condition", palette = c("#D8644B", "#4B7CD8"),
+          order = c("concrete", "abstract"), ylim = c(0, 100),
           ylab = "% of population expected to share one's color association", xlab="words")
 ```
 
-# using top 10 and bottom 10 entropy words
+# Ground truth boxplot
 ```{r}
-library(dplyr)
-selectedWords <- filter(d, word %in% c("lemon", "sun", "tomato", "fire", "apple", "spinach", "vegetable", "tree", "daffodil", 'noun', 'misconception', 'peculiarity', 'tendency', 'obligation', 'randomness', 'oddity', 'complexity', 'responsibility', 'absurdity'))
+dTruth = read_csv('./expectation/ground-truth-by-condition.csv') 
 
-library("ggpubr")
-ggboxplot(selectedWords, y = "sliderResponse", 
-          color = "condition", palette = c("#00AFBB", "#E7B800"),
-          order = c("abstract", "concrete"),
-          ylab = "% of population expected to share one's color association", xlab="words")
+ggboxplot(dTruth, y = "groundTruth", main= "Actual Agreement by Condition",
+          color = "condition", palette = c("#D8644B", "#4B7CD8"),
+          order = c("concrete", "abstract"), ylim = c(0, 100),
+          ylab = "% of population actually sharing color association", xlab="words")
 ```
 
-# plotting top and bottom 10 words individually
+# plotting expectation for top and bottom 10 words individually
 ```{r}
+selectedWords <- filter(dExpectation, word %in% c("lemon", "sun", "tomato", "fire", "apple", "spinach", "vegetable", "tree", "daffodil"))
+
 boxplot(sliderResponse~word, data=selectedWords, main="Expected Agreement",
-   xlab="Words", ylab="% of population expected to share one's color association")
+   xlab="Words", ylab="% of population expected to share one's color association", ylim = c(0, 100))
 ```
+
+# plotting actual agreement for top 10 words individually
+```{r}
+selectedWords <- filter(dTruth, word %in% c("lemon", "sun", "tomato", "fire", "apple", "spinach", "vegetable", "tree", "daffodil"))
+
+boxplot(groundTruth~word, data=selectedWords, main="Actual Agreement",
+   xlab="Words", ylab="% of population expected to share one's color association", ylim = c(0, 100))
+```
+
+
 # compare expectation to entropy for each word
 ```{r}
 
@@ -63,7 +70,8 @@ scatter.smooth(x=f$both, y=avgExpectation$x, xlab = "Entropy of participants' co
 ```{r}
 library(lme4)
 
-mixedModel <- lmer(entropy$filtered ~ sliderResponse$d  + (1|aID$d))
+# NEED TO JOIN DATAFRAMES
+mixedModel <- lmer(filtered$entropy ~ d$sliderResponse  + (1|d$aID))
 summary(mixedModel)
 ```
 
