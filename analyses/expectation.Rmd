@@ -49,30 +49,30 @@ boxplot(groundTruth~word, data=selectedWords, main="Actual Agreement",
 ```
 
 
-# compare expectation to entropy for each word
-```{r}
+<!-- # compare expectation to entropy for each word -->
+<!-- ```{r} -->
 
-filtered <- d %>%
-  mutate(sliderResponse = as.numeric(sliderResponse))
-# calculate mean per group 
-avgExpectation <- aggregate(filtered$sliderResponse, by = list(filtered$word), FUN = mean)
+<!-- filtered <- d %>% -->
+<!--   mutate(sliderResponse = as.numeric(sliderResponse)) -->
+<!-- # calculate mean per group  -->
+<!-- avgExpectation <- aggregate(filtered$sliderResponse, by = list(filtered$word), FUN = mean) -->
 
-# load and format entropy data
-f = read_csv('./entropy/sorted-entropies-all-both.csv') 
+<!-- # load and format entropy data -->
+<!-- f = read_csv('./entropy/sorted-entropies-all-both.csv')  -->
 
-f = f %>%
-  mutate(both = as.numeric(both))
+<!-- f = f %>% -->
+<!--   mutate(both = as.numeric(both)) -->
 
-scatter.smooth(x=f$both, y=avgExpectation$x, xlab = "Entropy of participants' color associations for all words", ylab = "Average % of population expected to share one's color association")
-```
-# attempt to combine entropy ratings and slider responses to do a mixed effect model with subject as the random effect
+<!-- scatter.smooth(x=f$both, y=avgExpectation$x, xlab = "Entropy of participants' color associations for all words", ylab = "Average % of population expected to share one's color association") -->
+<!-- ``` -->
 
-```{r}
-library(lme4)
+<!-- # attempt to combine entropy ratings and slider responses to do a mixed effect model with subject as the random effect -->
+<!-- ```{r} -->
+<!-- library(lme4) -->
 
-# NEED TO JOIN DATAFRAMES
-mixedModel <- lmer(filtered$entropy ~ d$sliderResponse  + (1|d$aID))
-summary(mixedModel)
-```
+<!-- # NEED TO JOIN DATAFRAMES -->
+<!-- mixedModel <- lmer(filtered$entropy ~ d$sliderResponse  + (1|d$aID)) -->
+<!-- summary(mixedModel) -->
+<!-- ``` -->
 
 
