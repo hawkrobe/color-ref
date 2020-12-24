@@ -39,32 +39,20 @@ var customEvents = function(game) {
 
   // at the end of the round, show feedback
   game.socket.on('updateScore', function(data){
-    // show target
+    // indicate target
     $('#' + game.target).removeClass('distractor').addClass('target');
     $('#' + game.target + '_targetarrow').addClass('target-arrow').text('target');
 
-    // show object that was selected
+    // indicate object that was selected
+    const selectedText = game.my_role == 'listener' ? 'You chose: ' : 'Your partner chose: ';
     $('#' + data.outcome).removeClass('distractor').addClass('selected');
-    $('#' + data.outcome + '_selectedarrow').addClass('selected-arrow').text('selected');
+    $('#' + data.outcome + '_selectedarrow').addClass('selected-arrow').text(selectedText);
 
-    // write a feedback message
-    let mainMsg;
-    let subMsg;    
-    if(data.outcome != game.target) {
-      mainMsg = "Oops, no bonus this time!";
-      subMsg = (game.my_role == 'listener' ?
-                "You picked <strong>" + data.outcome + "</strong> \
-                 but the target was <strong>" + game.target + "</strong>.":
-                "Your partner picked <strong>" + data.outcome + "</strong> \
-                 instead of <strong>" + game.target + '</strong>.');
-    } else {
-      mainMsg = "Correct! You earned 2 points!";
-      subMsg = (game.my_role == 'listener' ?
-                "The target was <strong>" + game.target + "</strong>.":
-                "Your partner picked the target.");
-    }
+    // write a feedback message in upper-right corner
+    const mainMsg = (
+      data.outcome != game.target ? "Oops, no bonus this time!" : "Correct! You earned 2 points!"
+    );
     $('#feedback').append($('<h3/>').html(mainMsg));
-    $('#feedback').append($('<p/>').html(subMsg));    
 
     // increment score
     game.data.score += data.outcome == game.target ? 0.02 : 0;
@@ -74,9 +62,9 @@ var customEvents = function(game) {
       $('#' + data.outcome).css({'text-decoration': 'line-through'});
   });
 
+  // on new round, reset UI elements for current 'phase' (e.g. pre/post or refGame)
   game.socket.on('newRoundUpdate', function(data){
     game.getPlayer(game.my_id).message = "";
-    console.log('received data', data);
     if(data.active) {
       updateState(game, data);
       if(data.currStim.phase == 'refGame')
