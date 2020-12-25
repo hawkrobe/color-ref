@@ -95,3 +95,5 @@ for index, word in enumerate(words):
     df_output = df_output.append(to_append, ignore_index=True)
 
 df_output.to_csv("./intra-participant/block1-block2-dists.csv", index=False)
+
+print(words[:10] + words[-10:])
