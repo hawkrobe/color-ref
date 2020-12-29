@@ -103,11 +103,14 @@ function advanceTestTrial(game, clickedId) {
   setTimeout(function(){
     if(game.trialSeq.length == 0) {
       game.socket.send('finishedPretest');
+      resetWaitingScreen('Thanks for your responses! <br/>\
+                          You are now ready to begin the game. <br/>\
+                          Please wait one moment for your partner to join you!');
     } else {
       game.currStim = game.trialSeq.pop();
       resetColorPicker(game);
     }
-  }, 1500);
+  }, 1000);
 }
 
 function initStimGrid(game) {
@@ -189,6 +192,12 @@ function drawScreen (game) {
     initColorGrid(game, $('#color-picker-grid'));
     initStimGrid(game);
   }
+};
+
+function resetWaitingScreen(text) {
+  $('#pre-post-div').hide();
+  $('#main-div').hide();
+  $('#waiting').html(text);
 };
 
 function resetRefGame (game, data) {
