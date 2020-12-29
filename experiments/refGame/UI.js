@@ -92,16 +92,22 @@ function advanceTestTrial(game, clickedId) {
     "response_munsell": munsell[_.toInteger(clickedId)].munsell
   });
 
+  $('#' + clickedId).css({
+    'outline-color' : '#FFF', 
+    'outline-width' : '8px', 
+    'outline-style' : 'solid'
+  });
+
   // if we're at end of pre-test, tell the server;
   // otherwise, move to next trial
-  console.log('advancing,', game.trialSeq);
-  if(game.trialSeq.length == 0) {
-    console.log('finished');
-    game.socket.send('finishedPretest');
-  } else {
-    game.currStim = game.trialSeq.pop();
-    resetColorPicker(game);
-  }
+  setTimeout(function(){
+    if(game.trialSeq.length == 0) {
+      game.socket.send('finishedPretest');
+    } else {
+      game.currStim = game.trialSeq.pop();
+      resetColorPicker(game);
+    }
+  }, 1500);
 }
 
 function initStimGrid(game) {
@@ -218,8 +224,9 @@ function resetColorPicker (game) {
   $('#waiting').html('');
   $("#pre-post-div").html("");
   $('#pre-post-div').show();
-  $('#pre-post-div').append('<div id="jspsych-html-button-response-stimulus"><h2>' +
-                            game.currStim.target + '</h2></div>');
+  const prompt = $('<h5/>').html("please select the color you most closely associate with the word:")
+  const word = $('<h2/>').html("<strong>" + game.currStim.target + '</strong>');
+  $('#pre-post-div').append($('<div/>').css({'text-align' : 'center'}).append(prompt).append(word));
   game.messageSent = false;
   initColorGrid(game, $('#pre-post-div'));
 };
