@@ -114,16 +114,16 @@ function initStimGrid(game) {
   // Add objects to grid
   _.forEach(_.shuffle(game.context), (word, i) => {
     var div = $('<div/>')
-        .addClass('col h2 border pressable-text rounded-pill')
-        .css({'margin' : '0px 20px'})
-        .append($('<div/>').addClass('box text-center').text(word))
-        .attr({'id' : word});
+        .addClass('col h2 border pressable-text rounded-pill') // make it a blob with a border
+        .css({'margin' : '0px 20px'}) // Make some space for arrow above & below
+        .append($('<div/>').addClass('box text-center').text(word)) // stick a word inside the blob
+        .attr({'id' : word}); // add an id to the blow so you can grab it later
 
     // Display target to speaker
     if(word == game.target && game.my_role == game.playerRoleNames.role1) {
-      div.addClass('target font-weight-bold');
-      div.append($('<span/>').attr({'id' : word + '_targetarrow'})
-                 .addClass('target-arrow').text('target'));
+      div.addClass('target font-weight-bold'); // bold the word
+      div.append($('<span/>').attr({'id' : word + '_targetarrow'}) // add a 'targetarrow' elemnt
+                 .addClass('target-arrow').text('target'));        // annotate as target
       div.append($('<span/>').attr({'id' : word + '_selectedarrow'}));
     } else {
       div.addClass('distractor');
@@ -226,9 +226,15 @@ function resetColorPicker (game) {
   $('#pre-post-div').show();
   const prompt = $('<h5/>').html("please select the color you most closely associate with the word:")
   const word = $('<h2/>').html("<strong>" + game.currStim.target + '</strong>');
-  $('#pre-post-div').append($('<div/>').css({'text-align' : 'center'}).append(prompt).append(word));
+  $('#pre-post-div').append(
+    $('<div/>').css({'text-align' : 'center', 'margin' : '50px 0px'}).append(prompt).append(word));
   game.messageSent = false;
   initColorGrid(game, $('#pre-post-div'));
+  $('#pre-post-div').append(
+    $('<h5/>')
+      .html(`${game.trialSeq.length + 1} words remaining before game starts.`)
+      .css({'margin' : '50px 0px'})
+  );
 };
 
 module.exports = {
