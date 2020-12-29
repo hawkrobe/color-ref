@@ -218,8 +218,9 @@ function resetColorPicker (game) {
   $('#waiting').html('');
   $("#pre-post-div").html("");
   $('#pre-post-div').show();
-  $('#pre-post-div').append('<div id="jspsych-html-button-response-stimulus"><h2>' +
-                            game.currStim.target + '</h2></div>');
+  const prompt = $('<h5/>').html("please select the color you most closely associate with the word:")
+  const word = $('<h2/>').html("<strong>" + game.currStim.target + '</strong>');
+  $('#pre-post-div').append($('<div/>').css({'text-align' : 'center'}).append(prompt).append(word));
   game.messageSent = false;
   initColorGrid(game, $('#pre-post-div'));
 };
