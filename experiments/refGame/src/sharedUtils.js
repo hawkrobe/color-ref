@@ -83,6 +83,20 @@ var writeDataToMongo = function(game, line) {
   );
 };
 
+var addPptToMongo = function(postData) {
+  sendPostRequest(
+    'http://localhost:6004/db/insert',
+    { json: postData },
+    (error, res, body) => {
+      if (!error && res.statusCode === 200) {
+	console.log(`sent data to store`);
+      } else {
+	console.log(`error sending data to store: ${error} ${body}`);
+      }
+    }
+  );
+};
+
 var UUID = function() {
   var baseName = (Math.floor(Math.random() * 10) + '' +
         Math.floor(Math.random() * 10) + '' +
@@ -262,6 +276,7 @@ var series = function makeSeries(lb,ub) {
 
 module.exports = {
   UUID,
+  addPptToMongo,
   checkPreviousParticipant,
   serveFile,
   handleDuplicate,
