@@ -93,7 +93,7 @@ function advanceTestTrial(game, clickedId) {
       resetWaitingScreen('Thanks for your responses!<br/>\
                           You are now ready to begin the game.<br/>\
                           Please wait one moment for your partner<br/>\
-                          to finish telling us about their associations.<br/>\
+                          to finish telling us about their personal associations.<br/>\
                           You’ll begin interacting with them in one moment!');
     } else if(game.trialSeq.length == 0 & game.phase == 'post') {
       game.showExitSurvey();
@@ -222,8 +222,10 @@ function resetRefGame (game, data) {
 // draw everything, and give time to send notification about swapping roles
 function reset(game, data) {
   if(data.currStim.phase == 'post') {
-    resetWaitingScreen('All done! You earned a bonus of $' + String(game.data.score.toFixed(2)) +
-                       '. We just have a few more questions for you before you submit the HIT.');
+    resetWaitingScreen('All done! You earned a performance bonus of $'
+		       + String(game.data.score.toFixed(2)) +
+                       '. We just have a few last questions for you before you \
+                        submit the HIT and get your completion bonus.');
     setTimeout(() => resetColorPicker(game, data), 3000);
   } else if(data.currStim.phase == 'pre') {
     resetColorPicker(game, data);
@@ -243,7 +245,7 @@ function resetColorPicker (game) {
   $('#waiting').html('');
   $("#pre-post-div").html("");
   $('#pre-post-div').show();
-  const prompt = $('<h5/>').html("please select the color you most closely associate with the word:")
+  const prompt = $('<h5/>').html("please select the color you personally associate with the word:");
   const word = $('<h2/>').html("<strong>" + game.currStim.target + '</strong>');
   $('#pre-post-div').append(
     $('<div/>').css({'text-align' : 'center', 'margin' : '50px 0px'}).append(prompt).append(word));
@@ -284,7 +286,9 @@ function submit (event) {
     'role' : game.my_role,
     'totalLength' : Date.now() - game.startTime,
     'playerId' : game.my_id,
+    'score' : game.data.score + 0.06 * game.trialNum
   });
+  console.log(game.data);
   game.submitted = true;
   game.socket.emit("saveData", _.extend({'dataType': 'exitSurvey'}, game.urlParams, game.data));
   if(_.size(game.urlParams) >= 4) {
