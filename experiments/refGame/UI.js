@@ -4,48 +4,13 @@ var confetti = new Confetti(300);
 
 // This gets called when someone selects something in the menu during the
 // exit survey... collects data from drop-down menus and submits using mmturkey
-function dropdownTip(data){
-  var commands = data.split('::');
-  switch(commands[0]) {
-  case 'human' :
-    $('#humanResult').show();
-    globalGame.data = _.extend(globalGame.data,
-                               {'thinksHuman' : commands[1]}); break;
-  case 'language' :
-    globalGame.data = _.extend(globalGame.data,
-                               {'nativeEnglish' : commands[1]}); break;
-  case 'partner' :
-    globalGame.data = _.extend(globalGame.data,
-                               {'ratePartner' : commands[1]}); break;
-  case 'confused' :
-    globalGame.data = _.extend(globalGame.data,
-                               {'confused' : commands[1]}); break;
-  case 'submit' :
-    globalGame.data = _.extend(globalGame.data,
-                               {'comments' : $('#comments').val(),
-                                'strategy' : $('#strategy').val(),
-                                'role' : globalGame.my_role,
-                                'totalLength' : Date.now() - globalGame.startTime});
-    globalGame.submitted = true;
-    console.log("data is...");
-    console.log(globalGame.data);
-    if(_.size(globalGame.urlParams) >= 4) {
-      globalGame.socket.send("exitSurvey." + JSON.stringify(globalGame.data));
-      window.opener.turk.submit(globalGame.data, true);
-      window.close();
-    } else {
-      console.log("would have submitted the following :")
-      console.log(globalGame.data);
-    }
-    break;
-  }
-}
 
 function setupListenerHandlers(game) {
   $('.pressable-text').click(function(event) {
     // Only let listener click a word once they've heard answer back
     if(game.messageSent & !game.responseSent) {
       game.responseSent = true;
+      game.socket.emit('saveData', clickPacket(game, $(this).attr('id')));
       game.socket.send('sendResponse.' + $(this).attr('id'));
     }
   });
@@ -63,35 +28,57 @@ function setupSpeakerHandlers(game) {
       // Only let listener click once they've heard answer back
       $(this).removeClass("btn-hover");
       game.messageSent = true;
-      if(game.phase == 'refGame')
-        game.socket.send('sendColor.' + $(this).attr('id'));
-      else
+      if(game.phase == 'refGame') {
+        game.socket.send('sendColor.' + $(this).attr('id')); 
+        game.socket.emit('saveData', colorPacket(game, $(this).attr('id')));
+      } else
         advanceTestTrial(game, $(this).attr('id'));
     }
   });
 }
 
-function advanceTestTrial(game, clickedId) {
-  // measure rt
-  var end_time = new Date();
-  var rt = end_time - game.start_time;
-
-  // send data to store
-  var rgbArray = munsell[_.toInteger(clickedId)].rgb.slice(1,-1).split(', ');
-  game.socket.emit('data', {
-    "rt": rt,
+function clickPacket(game, clickedId) {
+  return _.extend({}, game.urlParams, {
+    "dataType" : "clickedWord",
+    playerId: game.my_id,
+    "rt":  Date.now() - game.receivedColorTime,
     "target": game.currStim.target,
     "trialNum": game.currStim.trialNum,
-    "phase": game.currStim.phase,    
+    "blockNum" : game.currStim.blockNum,
+    "phase" : game.currStim.phase,
+    "selected_word": clickedId,
+    "context_id" : game.currStim.context_id,
+    "context" : game.currStim.context,    
+    "correct" : game.currStim.target == clickedId
+  });
+}
+  
+function colorPacket (game, clickedId) {
+  var rgbArray = munsell[_.toInteger(clickedId)].rgb.slice(1,-1).split(', ');
+  return _.extend({}, game.urlParams, {
+    dataType: "sentColor",
+    playerId: game.my_id,
+    "rt":  Date.now() - game.roundStartTime,
+    "target": game.currStim.target,
+    "trialNum": game.currStim.trialNum,
+    "blockNum" : game.currStim.blockNum,
+    "phase": game.currStim.phase,
     "condition": game.currStim.condition,
-    "set": game.currStim.set,    
+    "set": game.currStim.set,
+    "context" : game.currStim.context, 
+    "context_id" : game.currStim.context_id,
     "button_pressed": clickedId,
     "response_r": _.toInteger(rgbArray[0]),
     "response_g": _.toInteger(rgbArray[1]),
     "response_b": _.toInteger(rgbArray[2]),
     "response_munsell": munsell[_.toInteger(clickedId)].munsell
   });
+}
 
+function advanceTestTrial(game, clickedId) {
+  game.socket.emit('saveData', colorPacket(game, clickedId));
+  
+  // highlight clicked object
   $('#' + clickedId).css({
     'outline-color' : '#FFF', 
     'outline-width' : '8px', 
@@ -100,17 +87,22 @@ function advanceTestTrial(game, clickedId) {
 
   // if we're at end of pre-test, tell the server;
   // otherwise, move to next trial
-  setTimeout(function(){
-    if(game.trialSeq.length == 0) {
+  game.advanceTimeout = setTimeout(function(){
+    if(game.trialSeq.length == 0 & game.phase == 'pre') {
       game.socket.send('finishedPretest');
-      resetWaitingScreen('Thanks for your responses! <br/>\
-                          You are now ready to begin the game. <br/>\
-                          Please wait one moment for your partner to join you!');
+      resetWaitingScreen('Thanks for your responses!<br/>\
+                          You are now ready to begin the game.<br/>\
+                          Please wait one moment for your partner<br/>\
+                          to finish telling us about their associations.<br/>\
+                          You’ll begin interacting with them in one moment!');
+    } else if(game.trialSeq.length == 0 & game.phase == 'post') {
+      game.showExitSurvey();
     } else {
-      game.currStim = game.trialSeq.pop();
+      game.currStim = game.trialSeq.shift();
+      game.roundStartTime = Date.now();
       resetColorPicker(game);
     }
-  }, 1000);
+  }, 750);
 }
 
 function initStimGrid(game) {
@@ -201,9 +193,11 @@ function resetWaitingScreen(text) {
 };
 
 function resetRefGame (game, data) {
-  // update score & trial counters
+  // update score counter
   $("#score-counter").text('Total bonus: $' + String(game.data.score.toFixed(2)));
-  $('#trial-counter').empty().append("Trial\n" + (game.trialNum + 1) + "/" + game.numTrials);
+
+  // note that we need to subtract off the pre- and post trials for this counter...
+  $('#trial-counter').empty().append("Trial\n" + (game.trialNum + 1) + "/" + (game.numTrials - 2));
 
   // clear display elements
   $('#pre-post-div').html("");
@@ -222,9 +216,25 @@ function resetRefGame (game, data) {
         you think they're trying to communicate.</p>"
   );
   $('#instructs').empty().append(instruct);
-
-  // draw everything
   drawScreen(game);
+}
+
+// draw everything, and give time to send notification about swapping roles
+function reset(game, data) {
+  if(data.currStim.phase == 'post') {
+    resetWaitingScreen('All done! You earned a bonus of $' + String(game.data.score.toFixed(2)) +
+                       '. We just have a few more questions for you before you submit the HIT.');
+    setTimeout(() => resetColorPicker(game, data), 3000);
+  } else if(data.currStim.phase == 'pre') {
+    resetColorPicker(game, data);
+  } else if(game.trialNum % 8 == 0 && game.trialNum > 1) {
+    resetWaitingScreen('Nice work! Time to switch roles. <br/> \
+                        For the next few trials, you will be the <strong>'
+                       + game.my_role + '</strong>.');
+    setTimeout(() => resetRefGame(game, data), 3000);
+  } else {
+    resetRefGame(game, data);
+  }
 }
 
 function resetColorPicker (game) {
@@ -241,15 +251,54 @@ function resetColorPicker (game) {
   initColorGrid(game, $('#pre-post-div'));
   $('#pre-post-div').append(
     $('<h5/>')
-      .html(`${game.trialSeq.length + 1} words remaining before game starts.`)
+      .html(`${game.trialSeq.length + 1} words remaining.`)
       .css({'margin' : '50px 0px'})
   );
 };
 
+function dropdownTip(event){
+  var game = event.data.game;
+  var data = $(this).find('option:selected').val();
+  // console.log(data);
+  var commands = data.split('::');
+  switch(commands[0]) {
+  case 'language' :
+    game.data = _.extend(game.data, {'nativeEnglish' : commands[1]}); break;
+  case 'partner' :
+    game.data = _.extend(game.data, {'ratePartner' : commands[1]}); break;
+  case 'human' :
+    $('#humanResult').show();
+    game.data = _.extend(game.data, {'partnerIsHuman' : commands[1]}); break;
+  case 'didCorrectly' :
+    game.data = _.extend(game.data, {'didCorrectly' : commands[1]}); break;
+  }
+}
+
+function submit (event) {
+  $('#button_error').show();
+  var game = event.data.game;
+  game.finished = true;
+  game.data = _.extend(_.omit(game.data, 'gameID'), {
+    'comments' : $('#comments').val().trim().replace(/\./g, '~~~'),
+    'strategy' : $('#strategy').val().trim().replace(/\./g, '~~~'),
+    'role' : game.my_role,
+    'totalLength' : Date.now() - game.startTime,
+    'playerId' : game.my_id,
+  });
+  game.submitted = true;
+  game.socket.emit("saveData", _.extend({'dataType': 'exitSurvey'}, game.urlParams, game.data));
+  if(_.size(game.urlParams) >= 4) {
+    turk.submit(game.data, true);
+  } else {
+    console.log("would have submitted the following :")
+    console.log(game.data);
+  }
+}
+
 module.exports = {
   confetti,
-  drawScreen,
-  resetRefGame,
-  resetColorPicker
+  reset,
+  submit,
+  dropdownTip
 };
 
