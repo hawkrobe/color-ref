@@ -57,12 +57,12 @@ var customEvents = function(game) {
 
     // write a feedback message in upper-right corner
     const mainMsg = (
-      data.outcome != game.target ? "Oops, no bonus this time!" : "Correct! You earned 2 points!"
+      data.outcome != game.target ? "Oops, no bonus this time!" : "Correct! You earned 3 points!"
     );
     $('#feedback').append($('<h3/>').html(mainMsg));
 
     // increment score
-    game.data.score += data.outcome == game.target ? 0.02 : 0;
+    game.data.score += data.outcome == game.target ? 0.03 : 0;
 
     // strike out selected text to emphasize error for listener
     if(game.my_role == 'listener' && data.outcome != game.target)
