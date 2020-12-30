@@ -9,13 +9,16 @@ function updateState (game, data){
   game.phase = data.currStim.phase;
   game.numTrials = data.currStim.numTrials;
 
-  // For pre- and post-tests, we get trialSeq bundle
+  // For pre- and post-tests, we get trialSeq bundle & shuffle
   if(game.phase != 'refGame') {
-    game.trialSeq = data.currStim.trialSeq;
-    game.currStim = game.trialSeq.pop();
+    game.trialSeq = _.map(_.shuffle(data.currStim.trialSeq), (trial, i) => {
+      return _.extend({}, trial, {trialNum: i});
+    });
+    game.currStim = game.trialSeq.shift();
   } else {
     game.currStim = data.currStim;
   }
+
   game.condition = game.currStim.condition;
   game.context = game.currStim.context;
   game.target = game.currStim.target;  
@@ -27,8 +30,12 @@ function updateState (game, data){
 };
 
 var customEvents = function(game) {
+  $('.form-group').change({game: game}, UI.dropdownTip);
+  $('#surveySubmit').click({game: game}, UI.submit);
+
   // when you receive a color, highlight it
   game.socket.on('colorReceived', function(data){
+    game.receivedColorTime = Date.now();
     game.messageSent = true;
     $('#' + data.id).css({
       'outline-color' : '#FFF', 
@@ -65,13 +72,8 @@ var customEvents = function(game) {
   // on new round, reset UI elements for current 'phase' (e.g. pre/post or refGame)
   game.socket.on('newRoundUpdate', function(data){
     game.getPlayer(game.my_id).message = "";
-    if(data.active) {
-      updateState(game, data);
-      if(data.currStim.phase == 'refGame')
-        UI.resetRefGame(game, data);
-      else
-        UI.resetColorPicker(game, data);
-    }
+    updateState(game, data);
+    UI.reset(game, data);
   });
 };
 
