@@ -10,11 +10,33 @@ library(scales)
 library(xtable)
 library(broom)
 ```
+# load data
+```{r}
+dExpectation = read_csv('./expectation/expectations-by-condition.csv') 
+dTruth = read_csv('./expectation/ground-truth-by-condition.csv') 
+```
+
+# word level response
+```{r}
+# Average expectation rating slider 
+avgExpectation <- aggregate(dExpectation[, 2], list(dExpectation$word), mean)
+# Each person and say what percent matched their response -> then average that 
+avgTruth <- aggregate(dTruth[, 2], list(dTruth$word), mean)
+
+# Z score averages of expectation rating and actual percent matches (across participants) and compare
+expectation <- aggregate(dExpectation[, 2], list(dExpectation$word), mean) %>% 
+  mutate(zscore = (sliderResponse - mean(sliderResponse))/sd(sliderResponse))
+
+truth <-  aggregate(dTruth[, 2], list(dTruth$word), mean) %>% 
+  mutate(zscore = (groundTruth - mean(groundTruth))/sd(groundTruth))
+```
+# plot word level responses (averaged over participants + z-scored)
+```{r}
+scatter.smooth(x=expectation$zscore, y=truth$zscore, xlab="Average expecation rating", ylab="Average percent agreement", main="Expected agreement vs. actual agreement")
+```
 
 # Expectation ratings box plot
 ```{r}
-dExpectation = read_csv('./expectation/expectations-by-condition.csv') 
-
 library("ggpubr")
 ggboxplot(dExpectation, y = "sliderResponse", main= "Expected Agreement by Condition",
           color = "condition", palette = c("#D8644B", "#4B7CD8"),
@@ -24,7 +46,7 @@ ggboxplot(dExpectation, y = "sliderResponse", main= "Expected Agreement by Condi
 
 # Ground truth boxplot
 ```{r}
-dTruth = read_csv('./expectation/ground-truth-by-condition.csv') 
+
 
 ggboxplot(dTruth, y = "groundTruth", main= "Actual Agreement by Condition",
           color = "condition", palette = c("#D8644B", "#4B7CD8"),
