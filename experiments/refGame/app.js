@@ -1,13 +1,14 @@
 global.__base = __dirname + '/';
 
 const 
-    use_https     = true,
-    argv          = require('minimist')(process.argv.slice(2)),
-    https         = require('https'),
-    fs            = require('fs'),
-    app           = require('express')(),
-    _             = require('underscore'),
-    RefGameServer = require('./src/server.js');
+    use_https       = true,
+    argv            = require('minimist')(process.argv.slice(2)),
+    https           = require('https'),
+    fs              = require('fs'),
+    app             = require('express')(),
+    _               = require('underscore'),
+    sendPostRequest = require('request').post,
+    RefGameServer   = require('./src/server.js');
 let gameport;
 let expPath;
 
@@ -107,6 +108,26 @@ var initialize = function(query, client, id) {
   // When this client disconnects, we want to tell the game server
   // about that as well, so it can remove them from the game they are
   // in, and make sure the other player knows that they left and so on.
+
+  // Set up callback for writing client data to mongo
+  client.on('saveData', function(data) {
+    console.log('currentData received: ' + JSON.stringify(data));
+    const constantPacket = {
+      dbname: 'color-ref',
+      colname: 'ref-game',
+      iterationName: 'testing',
+      gameId: client.game.id,
+      time: Date.now(),
+    };
+    sendPostRequest('http://localhost:6004/db/insert', { json: data }, (error, res, body) => {
+      if (!error && res.statusCode === 200) {
+        console.log(`sent data to store`);
+      } else {
+	console.log(`error sending data to store: ${error} ${body}`);
+      }
+    });
+  });
+
   client.on('disconnect', function () {            
     console.log('\t socket.io:: client id ' + client.userid 
                 + ' disconnected from game id ' + client.game.id);
