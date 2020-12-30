@@ -193,10 +193,10 @@ class ClientGame extends Game {
     } else {
       $('#exit_survey').prepend(failMsg); 
     }
-    
-    $('#exit_survey').show();
+    $('#waiting').hide();
     $('#main-div').hide();
-    $('#pre-post-div').hide();    
+    $('#pre-post-div').hide();     
+    $('#exit_survey').show();
   } 
 }
 
