@@ -15,7 +15,6 @@ class Game {
     this.dataStore = config.dataStore;
     this.playersThreshold = config.playersThreshold;
     this.playerRoleNames = config.playerRoleNames;
-    this.numRounds = config.numRounds;
     this.numHorizontalCells = config.numHorizontalCells;
     this.numVerticalCells = config.numVerticalCells;
     this.cellDimensions = config.cellDimensions;
@@ -81,6 +80,7 @@ class ServerGame extends Game {
   start () {
     this.active = true;
     this.trialList = this.makeTrialList();
+    this.numRounds = this.trialList.length;    
     this.newRound();
   }
 
@@ -98,12 +98,15 @@ class ServerGame extends Game {
   
   // This is called on the server side to trigger new round
   newRound (delay) {
-    if(this.roundNum == this.numRounds - 1) {
+    if(this.roundNum == this.trialList.length - 1) {
       this.end();
     } else {
       // Otherwise, get the preset list of tangrams for the new round
       this.roundNum += 1;
       this.currStim = this.trialList[this.roundNum];
+
+      // set active to false on post-test so people can drop out without disconnecting other person
+      this.active = this.currStim.phase != 'post';      
       var state = this.takeSnapshot();
       _.forEach(this.activePlayers(), p => {
 	setTimeout(() => p.player.instance.emit( 'newRoundUpdate', state), delay);
@@ -163,43 +166,38 @@ class ClientGame extends Game {
     }.bind(this));
     
     this.socket.on('showExitSurvey', function(data) {
-      if(this.viewport) {
-	this.viewport.style.display="none";
-      } else if (document.getElementById('viewport')) {
-	document.getElementById('viewport').style.display = 'none';
-      }
-      var email = this.email ? this.email : '';
-      var failMsg = [
-	'<h3>Oops! It looks like your partner lost their connection!</h3>',
-	'<p> Completing this survey will submit your HIT so you will still receive full ',
-	'compensation.</p> <p>If you experience any problems, please email us (',
-	email, ')</p>'
-      ].join('');
-      var successMsg = [
-	"<h3>Thanks for participating in our experiment!</h3>",
-	"<p>Before you submit your HIT, we'd like to ask you a few questions.</p>"
-      ].join('');
-
-      if(this.roundNum + 2 > this.numRounds) { 
-	$('#exit_survey').prepend(successMsg);    
-      } else {
-	$('#exit_survey').prepend(failMsg); 
-      }
-
-      $('#exit_survey').show();
-      $('#main').hide();
-      $('#header').hide();
-      $('#context').hide(); // from QA expt
-      
-      $('#message_panel').hide();
-      $('#submitbutton').hide();
-      $('#roleLabel').hide();
-      $('#score').hide();
-
+      this.showExitSurvey()
     }.bind(this));
 
     this.customEvents(this);
   }
+
+  showExitSurvey () {
+    clearTimeout(this.advanceTimeout);
+    var email = this.email ? this.email : '';
+    var failMsg = [
+      '<h3>Oops! It looks like your partner lost their connection!</h3>',
+      '<p> Completing this survey will submit your HIT so you will still receive full ',
+      'compensation.</p> <p>If you experience any problems, please email us (',
+      email, ')</p>'
+    ].join('');
+    var successMsg = [
+      "<h3>Thanks for participating in our experiment!</h3>",
+      "<p>Before you submit your HIT, we'd like to ask you a few questions.</p>"
+    ].join('');
+
+    console.log('roundnum', this.roundNum)
+    console.log('numRoudns', this.numRounds)
+    if(this.roundNum + 1 >= this.numRounds) { 
+      $('#exit_survey').prepend(successMsg);    
+    } else {
+      $('#exit_survey').prepend(failMsg); 
+    }
+    
+    $('#exit_survey').show();
+    $('#main-div').hide();
+    $('#pre-post-div').hide();    
+  } 
 }
 
 module.exports = {ClientGame, ServerGame};
