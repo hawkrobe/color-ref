@@ -68,6 +68,12 @@ app.get( '/*' , function( req, res ) {
   }
 }); 
 
+// When people fail, we add them to mongo so they can't try again
+app.post('/addPpt', function (req, res) {
+  var id = req.query.workerId;
+  utils.addPptToMongo(req.body);
+});
+
 // Socket.io will call this function when a client connects. We check
 // to see if the client supplied a id. If so, we distinguish them by
 // that, otherwise we assign them one at random
@@ -112,14 +118,14 @@ var initialize = function(query, client, id) {
   // Set up callback for writing client data to mongo
   client.on('saveData', function(data) {
     console.log('currentData received: ' + JSON.stringify(data));
-    const constantPacket = {
+    const packet = _.extend({}, data, {
       dbname: 'color-ref',
       colname: 'ref-game',
       iterationName: 'testing',
       gameId: client.game.id,
       time: Date.now(),
-    };
-    sendPostRequest('http://localhost:6004/db/insert', { json: data }, (error, res, body) => {
+    });
+    sendPostRequest('http://localhost:6004/db/insert', { json: packet }, (error, res, body) => {
       if (!error && res.statusCode === 200) {
         console.log(`sent data to store`);
       } else {
