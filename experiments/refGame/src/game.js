@@ -108,9 +108,11 @@ class ServerGame extends Game {
       // set active to false on post-test so people can drop out without disconnecting other person
       this.active = this.currStim.phase != 'post';      
       var state = this.takeSnapshot();
-      _.forEach(this.activePlayers(), p => {
-	setTimeout(() => p.player.instance.emit( 'newRoundUpdate', state), delay);
-      });
+      setTimeout(() => {
+	_.forEach(this.activePlayers(), p => {
+	  p.player.instance.emit( 'newRoundUpdate', state);
+	});
+      }, delay);
     }
   };
 }
