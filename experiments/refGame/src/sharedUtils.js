@@ -25,12 +25,12 @@ var handleInvalidID = function(req, res) {
 var checkPreviousParticipant = function(workerId, callback) {
   var p = {'workerId': workerId};
   var postData = {
-    dbname: 'QA',
+    dbname: 'color-ref',
     query: p,
     projection: {'_id': 1}
   };
   sendPostRequest(
-    'http://localhost:5000/db/exists',
+    'http://localhost:6004/db/exists',
     {json: postData},
     (error, res, body) => {
       try {
@@ -71,7 +71,7 @@ var writeDataToMongo = function(game, line) {
     colname: game.experimentName
   }, line);
   sendPostRequest(
-    'http://localhost:5000/db/insert',
+    'http://localhost:6004/db/insert',
     { json: postData },
     (error, res, body) => {
       if (!error && res.statusCode === 200) {
