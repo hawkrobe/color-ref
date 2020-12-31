@@ -286,13 +286,14 @@ function submit (event) {
     'role' : game.my_role,
     'totalLength' : Date.now() - game.startTime,
     'playerId' : game.my_id,
-    'score' : game.data.score + 0.06 * game.trialNum
+    'score' : game.data.score + 0.06 * game.roundNum
   });
   console.log(game.data);
   game.submitted = true;
   game.socket.emit("saveData", _.extend({'dataType': 'exitSurvey'}, game.urlParams, game.data));
   if(_.size(game.urlParams) >= 4) {
-    turk.submit(game.data, true);
+    window.opener.turk.submit(game.data, true);
+    window.close();
   } else {
     console.log("would have submitted the following :")
     console.log(game.data);

@@ -4,6 +4,7 @@ var UI = require('./UI.js');
 // server_send_update function in game.core.js
 // -- data: packet send by server
 function updateState (game, data){
+  console.log(data)
   game.active = data.active;
   game.my_role = data.currStim.roles[game.my_id];
   game.phase = data.currStim.phase;
@@ -25,6 +26,7 @@ function updateState (game, data){
   game.blockNum = game.currStim.blockNum;
   game.trialNum = game.currStim.trialNum;
   game.roundStartTime = Date.now();
+  game.roundNum = game.roundNum;
   game.messageSent = false;
   game.responseSent = false;
 };

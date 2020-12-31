@@ -168,13 +168,14 @@ class ClientGame extends Game {
     }.bind(this));
     
     this.socket.on('showExitSurvey', function(data) {
-      this.showExitSurvey()
+      this.showExitSurvey();
     }.bind(this));
 
     this.customEvents(this);
   }
 
   showExitSurvey () {
+    console.log(this)
     clearTimeout(this.advanceTimeout);
     var email = this.email ? this.email : '';
     var failMsg = [
@@ -185,12 +186,10 @@ class ClientGame extends Game {
     ].join('');
     var successMsg = [
       "<h3>Thanks for participating in our experiment!</h3>",
-      "<p>Before you submit your HIT, we'd like to ask you a few questions.</p>"
+      "<p>Before you submit your HIT, we'd like to ask you just a couple more questions.</p>"
     ].join('');
 
-    console.log('roundnum', this.roundNum)
-    console.log('numRoudns', this.numRounds)
-    if(this.roundNum + 1 >= this.numRounds) { 
+    if(this.phase == 'post') { 
       $('#exit_survey').prepend(successMsg);    
     } else {
       $('#exit_survey').prepend(failMsg); 
