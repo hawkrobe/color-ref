@@ -36,6 +36,7 @@ def selectWordResponses(df, word):
 
 def getProbabilities(df, orderedWords, numChoices):
     # initialize numWords (200) x numColors (88) array
+    counts = np.empty([len(orderedWords), numChoices], dtype=float)
     probabilities = np.empty([len(orderedWords), numChoices], dtype=float)
 
     for index, word in enumerate(orderedWords):
@@ -44,12 +45,13 @@ def getProbabilities(df, orderedWords, numChoices):
 
         pseudoCount = 1.0/numChoices
 
-        # count number of responses for each color for this word
-        # remove 0's by adding psuedo counts of 1/numObservations
-        # divide counts by number of responses and then multiply by 100 to get percentages (adjust for different numbers of responses for each word)
-        # divide percentages by number of choices to get probability
-        # probabilities[index,:] = [(np.count_nonzero(responses == i) + pseudoCount)/numChoices for i in range(numChoices)]
-        probabilities[index,:] = [(((np.count_nonzero(responses == i) + pseudoCount)/len(responses))*100)/numChoices for i in range(numChoices)]
+        # count number of responses for each color for this word by adding
+        # psuedo counts of 1/numChoices to every cell
+        counts[index,:] = [(np.count_nonzero(responses == i) + pseudoCount) for i in range(numChoices)]
+
+        # normalize by dividing by total updated counts for that word
+    for index, word in enumerate(orderedWords):
+        probabilities[index,:] = counts[index,:]/np.sum(counts[index,:])
 
     return probabilities
 
@@ -71,7 +73,7 @@ def computeDivergence(words, probabilities):
         for j in range(probabilities.shape[0]):
             q = probabilities[j,:]
 
-            divergence[i,j] = js_divergence(p, q)
+            divergence[i,j] = kl_divergence(p, q)
 
     return divergence
 
@@ -190,28 +192,28 @@ def getContexts(wordSet, contexts_list, threshold):
 # compute divergence on all words
 probabilities = getProbabilities(df, orderedWords, numChoices) # get probabilities of each response for each word
 divergences = computeDivergence(orderedWords, probabilities)
-# print(probabilities)
-# print(np.sum(probabilities, axis=1))
-# print(divergences)
-#
-# # check if matrix is symmetric
-# if np.allclose(divergences, divergences.T, rtol=1e-05, atol=1e-08):
-#     print("divergence matrix is symmetric")
-# else:
-#     print("divergence matrix is NOT symmetric")
+print(probabilities)
+print(np.sum(probabilities, axis=1))
+print(divergences)
 
-# # make a csv with all pairwise overlaps
-# word1 = []
-# word2 = []
-# divergenceList = []
-# for i, firstWord in enumerate(orderedWords):
-#     word1.extend([firstWord]*len(orderedWords))
-#     divergenceList.extend(divergences[i,:].tolist())
-#     for j, secondWord in enumerate(orderedWords):
-#         word2.append(secondWord)
-#
-# df_output = pd.DataFrame({'word1':word1, 'word2': word2, 'JSdivergence':divergenceList}, columns=['word1', 'word2', 'JSdivergence'])
-# df_output.to_csv("./divergence/JS-divergence-%s.csv" % block, index=False)
+# check if matrix is symmetric
+if np.allclose(divergences, divergences.T, rtol=1e-05, atol=1e-08):
+    print("divergence matrix is symmetric")
+else:
+    print("divergence matrix is NOT symmetric")
+
+# make a csv with all pairwise overlaps
+word1 = []
+word2 = []
+divergenceList = []
+for i, firstWord in enumerate(orderedWords):
+    word1.extend([firstWord]*len(orderedWords))
+    divergenceList.extend(divergences[i,:].tolist())
+    for j, secondWord in enumerate(orderedWords):
+        word2.append(secondWord)
+
+df_output = pd.DataFrame({'word1':word1, 'word2': word2, 'JSdivergence':divergenceList}, columns=['word1', 'word2', 'JSdivergence'])
+df_output.to_csv("./divergence/KL-divergence-%s.csv" % block, index=False)
 
 #---------------------------------------------------------------------------------
 # RADIUS SAMPLING ALGORITHM
@@ -241,46 +243,46 @@ def getWordEntropy(df, word):
     return points['entropy']
 
 #---------------------------------------------------------------------------------
-
-words = orderedWords
-# 1) initialize with first four words (i.e. lemon, sun, tomato, fire)
-ctx = words[:4]
-print(ctx)
-
-# 2) check overlap between those words
-threshold = 0.3
-div = getDivergences(ctx) # get matrix of divergences
-overlaps = getOverlappingPairs(div, threshold) # get indices of pairs that are below threshold
-print(div)
-print(overlaps)
-
-# 3) if any pair of words has overlap LESS than threshold keep the one with
-# smaller entropy and replace the other one with the next word in the list
-if overlaps.size != 0:
-    for pair in overlaps:
-        # entropy0 = getWordEntropy(df_entropy, ctx[pair[0]])
-        # entropy1 = getWordEntropy(df_entropy, ctx[pair[1]])
-
-        # remove the word in context at index 1 of this pair from the list of available words
-        # (because the contexts are ordered, word @ index 0 must be lower entropy than word @ index 1)
-        words = filter(lambda x: x != ctx[pair[0]], words)
-
-        # make new context without the the word at index 1 of pair
-        newCtx = filter(lambda x: x != ctx[pair[1]], ctx)
-        # append first word in word list that was not in ctx
-        newCtx.append(list(filter(lambda i: i not in ctx, words))[0])
-        print(newCtx)
-
-        print("")
-
-# if there are no overlapping pairs for this context
-# update word list having removed the words in the valid context
-# set new context = first 4 words of word list
-else:
-    words = filter(lambda x: x not in ctx, words)
-    ctx = words[:4]
-
-
-# check overlap between those words
-# repeat (2)-(3) until all overlaps are less than threshold
-# take those four words out of the list and repeat
+#
+# words = orderedWords
+# # 1) initialize with first four words (i.e. lemon, sun, tomato, fire)
+# ctx = words[:4]
+# print(ctx)
+#
+# # 2) check overlap between those words
+# threshold = 0.3
+# div = getDivergences(ctx) # get matrix of divergences
+# overlaps = getOverlappingPairs(div, threshold) # get indices of pairs that are below threshold
+# print(div)
+# print(overlaps)
+#
+# # 3) if any pair of words has overlap LESS than threshold keep the one with
+# # smaller entropy and replace the other one with the next word in the list
+# if overlaps.size != 0:
+#     for pair in overlaps:
+#         # entropy0 = getWordEntropy(df_entropy, ctx[pair[0]])
+#         # entropy1 = getWordEntropy(df_entropy, ctx[pair[1]])
+#
+#         # remove the word in context at index 1 of this pair from the list of available words
+#         # (because the contexts are ordered, word @ index 0 must be lower entropy than word @ index 1)
+#         words = filter(lambda x: x != ctx[pair[0]], words)
+#
+#         # make new context without the the word at index 1 of pair
+#         newCtx = filter(lambda x: x != ctx[pair[1]], ctx)
+#         # append first word in word list that was not in ctx
+#         newCtx.append(list(filter(lambda i: i not in ctx, words))[0])
+#         print(newCtx)
+#
+#         print("")
+#
+# # if there are no overlapping pairs for this context
+# # update word list having removed the words in the valid context
+# # set new context = first 4 words of word list
+# else:
+#     words = filter(lambda x: x not in ctx, words)
+#     ctx = words[:4]
+#
+#
+# # check overlap between those words
+# # repeat (2)-(3) until all overlaps are less than threshold
+# # take those four words out of the list and repeat
