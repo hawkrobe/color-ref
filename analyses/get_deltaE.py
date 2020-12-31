@@ -25,11 +25,11 @@ df = df[cols]
 df_block1 = df[df['condition'] == 'block1_target_trial']
 df_block2 = df[df['condition'] == 'block2_target_trial']
 
-# identify target words
+#---------------------------------------------------------------------------------
+# identify target words (no particular order)
 uniqueWords = set(df['word'].to_list())
 colorWords = set(['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'])
-targetWords = list(uniqueWords-colorWords)
-
+words = list(uniqueWords-colorWords)
 
 #---------------------------------------------------------------------------------
 # HELPER FUNCTIONS
@@ -67,12 +67,17 @@ def getDeltaE(allLabs, thisLab):
 # compute distances between each participant's block2 response for each word
 # output should be a distance
 
-df_output = pd.DataFrame()
-avgDeltaE = np.empty([len(targetWords),])
+#--------------------------------
+# change block + select corresponding data frame
+block = "block2"
+df = df_block2
+#--------------------------------
+avgDeltaE = np.empty([len(words),])
 
-for index, word in enumerate(targetWords):
+for index, word in enumerate(words):
+    print(word)
     # get rgb responses for all participants' block 2 responses for this word
-    r, g, b = selectRGBPoints(df_block1, word)
+    r, g, b = selectRGBPoints(df, word)
     # get lab objects for these rgb values
     lab = RGBtoLAB(r, g, b)
 
@@ -86,22 +91,27 @@ for index, word in enumerate(targetWords):
     for i in range(n):
         deltaE[i,:] = vectorizedDeltaE(lab, lab[i])
 
-    # check if matrix is symmetric: yes
+    # # check if matrix is symmetric: yes
     # print(np.allclose(deltaE, deltaE.T, rtol=1e-05, atol=1e-08))
-    # zero out elements below 0th diagonal
-    deltaE = np.triu(deltaE, 0)
-    # get average deltaE for the responses for this word
-    avgDeltaE[index] = np.sum(deltaE)/n
+    # print(np.count_nonzero(deltaE))
 
+    # extract only the upper triangular elements
+    upperTriangleElements = deltaE[np.triu_indices(n)]
+
+    # print(deltaE.shape)
+    # print(len(upperTriangleElements))
+
+    # get average deltaE for the responses for this word
+    avgDeltaE[index] = np.mean(upperTriangleElements)
 
 #---------------------------------------------------------------------------------
 # sort words in order of ascending average DeltaE
 argsorted = np.argsort(avgDeltaE)
-sortedWords = np.array(targetWords)[argsorted]
+sortedWords = np.array(words)[argsorted]
 sortedDeltaE = np.sort(avgDeltaE)
+print(sortedWords)
 
-df2 = pd.DataFrame({'word':sortedWords, 'Delta-E-CIE-2000':sortedDeltaE}, columns=['word', 'Delta-E-CIE-2000'])
-print(df2)
+df_output = pd.DataFrame({'word':sortedWords, 'Delta-E-CIE-2000':sortedDeltaE}, columns=['word', 'Delta-E-CIE-2000'])
+print(df_output)
 # save df as csv
-block = "block1"
-df2.to_csv("./deltaE/sorted-deltaE-CIE2000-%s.csv" % block, index=False)
+df_output.to_csv("./deltaE/sorted-deltaE-CIE2000-%s.csv" % block, index=False)
