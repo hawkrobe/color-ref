@@ -42,12 +42,14 @@ def getProbabilities(df, orderedWords, numChoices):
         # select all button responses that belong to a particular target word
         responses = np.array(selectWordResponses(df, word))
 
-        pseudoCount = 1.0/len(responses)
+        pseudoCount = 1.0/numChoices
 
         # count number of responses for each color for this word
         # remove 0's by adding psuedo counts of 1/numObservations
-        # divide by number of choices to get probability
-        probabilities[index,:] = [(np.count_nonzero(responses == i) + pseudoCount)/numChoices for i in range(numChoices)]
+        # divide counts by number of responses and then multiply by 100 to get percentages (adjust for different numbers of responses for each word)
+        # divide percentages by number of choices to get probability
+        # probabilities[index,:] = [(np.count_nonzero(responses == i) + pseudoCount)/numChoices for i in range(numChoices)]
+        probabilities[index,:] = [(((np.count_nonzero(responses == i) + pseudoCount)/len(responses))*100)/numChoices for i in range(numChoices)]
 
     return probabilities
 
@@ -97,7 +99,6 @@ divergenceABS = computeDivergence(wordsABS, probabilitiesABS)
 # print(divergences.shape)
 
 # np.savetxt("divergences.csv", divergences, delimiter=",")
-
 
 
 #---------------------------------------------------------------------------------
@@ -155,14 +156,13 @@ def getContexts(wordSet, contexts_list, threshold):
 # iterate over word set twice and sample without replacement so that we
 # get a set of contexts with each word used 2 times
 
-id = list(range(50))
-thresholdCNC = 0.7
-thresholdABS = 0.3
+# id = list(range(50))
+# thresholdCNC = 0.7
+# thresholdABS = 0.3
 
 #--------------------------------
 # MAKE CONCRETE CONTEXTS
 #--------------------------------
-#
 # concrete_contexts_list = []
 # # call getContexts 2x to get 50 contexts
 # getContexts(wordsCNC, concrete_contexts_list, thresholdCNC)
@@ -174,10 +174,46 @@ thresholdABS = 0.3
 #--------------------------------
 # MAKE ABSTRACT CONTEXTS
 #--------------------------------
-abstract_contexts_list = []
-# call getContexts 2x to get 50 contexts
-getContexts(wordsABS, abstract_contexts_list, thresholdABS)
-getContexts(wordsABS, abstract_contexts_list, thresholdABS)
-print(abstract_contexts_list)
-df_abs = pd.DataFrame({'id':id, 'words':abstract_contexts_list})
-df_abs.to_json('../data/contexts/divergence-rejection-sampling/abstract-contexts.json', orient='records')
+# abstract_contexts_list = []
+# # call getContexts 2x to get 50 contexts
+# getContexts(wordsABS, abstract_contexts_list, thresholdABS)
+# getContexts(wordsABS, abstract_contexts_list, thresholdABS)
+# print(abstract_contexts_list)
+# df_abs = pd.DataFrame({'id':id, 'words':abstract_contexts_list})
+# df_abs.to_json('../data/contexts/divergence-rejection-sampling/abstract-contexts.json', orient='records')
+
+
+#---------------------------------------------------------------------------------
+# MAKE CSV WITH ALL PAIRWISE DIVERGENCES
+#---------------------------------------------------------------------------------
+
+# compute divergence on all words
+probabilities = getProbabilities(df, orderedWords, numChoices) # get probabilities of each response for each word
+divergences = computeDivergence(orderedWords, probabilities)
+print(probabilities)
+print(np.sum(probabilities, axis=1))
+print(divergences)
+
+# check if matrix is symmetric
+if np.allclose(divergences, divergences.T, rtol=1e-05, atol=1e-08):
+    print("divergence matrix is symmetric")
+else:
+    print("divergence matrix is NOT symmetric")
+
+# # make a csv with all pairwise overlaps
+# word1 = []
+# word2 = []
+# divergenceList = []
+# for i, firstWord in enumerate(orderedWords):
+#     word1.extend([firstWord]*len(orderedWords))
+#     divergenceList.extend(divergences[i,:].tolist())
+#     for j, secondWord in enumerate(orderedWords):
+#         word2.append(secondWord)
+#
+# df_output = pd.DataFrame({'word1':word1, 'word2': word2, 'JSdivergence':divergenceList}, columns=['word1', 'word2', 'JSdivergence'])
+# df_output.to_csv("./divergence/JS-divergence-%s.csv" % block, index=False)
+
+
+#---------------------------------------------------------------------------------
+# RADIUS ALGORITHM: HELPER FUNCTIONS
+#---------------------------------------------------------------------------------
