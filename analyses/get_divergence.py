@@ -190,15 +190,15 @@ def getContexts(wordSet, contexts_list, threshold):
 # compute divergence on all words
 probabilities = getProbabilities(df, orderedWords, numChoices) # get probabilities of each response for each word
 divergences = computeDivergence(orderedWords, probabilities)
-print(probabilities)
-print(np.sum(probabilities, axis=1))
-print(divergences)
-
-# check if matrix is symmetric
-if np.allclose(divergences, divergences.T, rtol=1e-05, atol=1e-08):
-    print("divergence matrix is symmetric")
-else:
-    print("divergence matrix is NOT symmetric")
+# print(probabilities)
+# print(np.sum(probabilities, axis=1))
+# print(divergences)
+#
+# # check if matrix is symmetric
+# if np.allclose(divergences, divergences.T, rtol=1e-05, atol=1e-08):
+#     print("divergence matrix is symmetric")
+# else:
+#     print("divergence matrix is NOT symmetric")
 
 # # make a csv with all pairwise overlaps
 # word1 = []
@@ -213,7 +213,74 @@ else:
 # df_output = pd.DataFrame({'word1':word1, 'word2': word2, 'JSdivergence':divergenceList}, columns=['word1', 'word2', 'JSdivergence'])
 # df_output.to_csv("./divergence/JS-divergence-%s.csv" % block, index=False)
 
+#---------------------------------------------------------------------------------
+# RADIUS SAMPLING ALGORITHM
+#---------------------------------------------------------------------------------
+# get symmetric matrix of divergences for this context
+# lower divergence = identical, higher divergence = different
+def getDivergences(ctx):
+    div = np.empty([4,4])
+    # get divergence values for this sample
+    for i in range(4):
+        # get index of word i in orderedWords
+        idx_i = orderedWords.index(ctx[i])
+        for j in range(4):
+            # get index of word j in orderedWords
+            idx_j = orderedWords.index(ctx[j])
+            div[i,j] = divergences[idx_i, idx_j] # get divergence of word_i,j
+
+    return div
+
+def getOverlappingPairs(div, threshold):
+    div = np.triu(div) # keep upper triangle of symmatrix
+    return np.argwhere((div <= threshold) & (div > 0.0)) # find pairs that are not 0, but below threshold
+
+def getWordEntropy(df, word):
+    points = df[df['word'] == word]
+
+    return points['entropy']
 
 #---------------------------------------------------------------------------------
-# RADIUS ALGORITHM: HELPER FUNCTIONS
-#---------------------------------------------------------------------------------
+
+words = orderedWords
+# 1) initialize with first four words (i.e. lemon, sun, tomato, fire)
+ctx = words[:4]
+print(ctx)
+
+# 2) check overlap between those words
+threshold = 0.3
+div = getDivergences(ctx) # get matrix of divergences
+overlaps = getOverlappingPairs(div, threshold) # get indices of pairs that are below threshold
+print(div)
+print(overlaps)
+
+# 3) if any pair of words has overlap LESS than threshold keep the one with
+# smaller entropy and replace the other one with the next word in the list
+if overlaps.size != 0:
+    for pair in overlaps:
+        # entropy0 = getWordEntropy(df_entropy, ctx[pair[0]])
+        # entropy1 = getWordEntropy(df_entropy, ctx[pair[1]])
+
+        # remove the word in context at index 1 of this pair from the list of available words
+        # (because the contexts are ordered, word @ index 0 must be lower entropy than word @ index 1)
+        words = filter(lambda x: x != ctx[pair[0]], words)
+
+        # make new context without the the word at index 1 of pair
+        newCtx = filter(lambda x: x != ctx[pair[1]], ctx)
+        # append first word in word list that was not in ctx
+        newCtx.append(list(filter(lambda i: i not in ctx, words))[0])
+        print(newCtx)
+
+        print("")
+
+# if there are no overlapping pairs for this context
+# update word list having removed the words in the valid context
+# set new context = first 4 words of word list
+else:
+    words = filter(lambda x: x not in ctx, words)
+    ctx = words[:4]
+
+
+# check overlap between those words
+# repeat (2)-(3) until all overlaps are less than threshold
+# take those four words out of the list and repeat
