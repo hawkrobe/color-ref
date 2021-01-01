@@ -73,7 +73,7 @@ def computeDivergence(words, probabilities):
         for j in range(probabilities.shape[0]):
             q = probabilities[j,:]
 
-            divergence[i,j] = kl_divergence(p, q)
+            divergence[i,j] = js_divergence(p, q)
 
     return divergence
 
@@ -192,28 +192,28 @@ def getContexts(wordSet, contexts_list, threshold):
 # compute divergence on all words
 probabilities = getProbabilities(df, orderedWords, numChoices) # get probabilities of each response for each word
 divergences = computeDivergence(orderedWords, probabilities)
-print(probabilities)
-print(np.sum(probabilities, axis=1))
-print(divergences)
+# print(probabilities)
+# print(np.sum(probabilities, axis=1))
+# print(divergences)
+#
+# # check if matrix is symmetric
+# if np.allclose(divergences, divergences.T, rtol=1e-05, atol=1e-08):
+#     print("divergence matrix is symmetric")
+# else:
+#     print("divergence matrix is NOT symmetric")
 
-# check if matrix is symmetric
-if np.allclose(divergences, divergences.T, rtol=1e-05, atol=1e-08):
-    print("divergence matrix is symmetric")
-else:
-    print("divergence matrix is NOT symmetric")
-
-# make a csv with all pairwise overlaps
-word1 = []
-word2 = []
-divergenceList = []
-for i, firstWord in enumerate(orderedWords):
-    word1.extend([firstWord]*len(orderedWords))
-    divergenceList.extend(divergences[i,:].tolist())
-    for j, secondWord in enumerate(orderedWords):
-        word2.append(secondWord)
-
-df_output = pd.DataFrame({'word1':word1, 'word2': word2, 'JSdivergence':divergenceList}, columns=['word1', 'word2', 'JSdivergence'])
-df_output.to_csv("./divergence/KL-divergence-%s.csv" % block, index=False)
+# # make a csv with all pairwise overlaps
+# word1 = []
+# word2 = []
+# divergenceList = []
+# for i, firstWord in enumerate(orderedWords):
+#     word1.extend([firstWord]*len(orderedWords))
+#     divergenceList.extend(divergences[i,:].tolist())
+#     for j, secondWord in enumerate(orderedWords):
+#         word2.append(secondWord)
+#
+# df_output = pd.DataFrame({'word1':word1, 'word2': word2, 'JSdivergence':divergenceList}, columns=['word1', 'word2', 'JSdivergence'])
+# df_output.to_csv("./divergence/KL-divergence-%s.csv" % block, index=False)
 
 #---------------------------------------------------------------------------------
 # RADIUS SAMPLING ALGORITHM
@@ -242,47 +242,118 @@ def getWordEntropy(df, word):
 
     return points['entropy']
 
+# pick sets of 4 from words
+def sampleWords(ctx, words, visited, contexts_list, threshold):
+    # if there are only 4 words left, this must be a context
+    if len(words) == 0:
+        ctx = words
+        contexts_list.append(list(ctx))
+        print(len(contexts_list))
+        return contexts_list
+
+
+    # 3) if any pair of words has overlap > threshold
+    # keep the one with smaller entropy and replace the other one with the next word in the list (i.e. 'apple')
+    div = getDivergences(ctx)
+    overlaps = getOverlappingPairs(div, threshold) # get indices of pairs that are below threshold
+
+    # if there are no overlapping pairs for this context
+    if overlaps.size == 0:
+        contexts_list.append(ctx) # append to list of valid contexts
+        print(len(contexts_list))
+        updatedWords = filter(lambda x: x not in ctx, words) # update word list having removed the words in the valid context
+        visited = [] # set visited to empty
+        ctx = updatedWords[:4] # set new context = first 4 words of updated word list
+        sampleWords(ctx, updatedWords, visited, contexts_list, threshold) # call sampleWords with modified set of words
+
+    else:
+        for pair in overlaps:
+            # indices of words in pair in context
+            idx0 = pair[0]
+            idx1 = pair[1]
+            visited.extend(ctx)
+            # create temp list of words to consider without words that have been visited
+            temp = filter(lambda x: x not in visited, words)
+
+            # if temp is empty and there are no more words to consider, just accept this context and return from this recursive call
+            if len(temp) == 0:
+                contexts_list.append(ctx) # append to list of valid contexts
+                print(len(contexts_list))
+                updatedWords = filter(lambda x: x not in ctx, words) # update word list having removed the words in the valid context
+                print(updatedWords)
+                visited = [] # set visited to empty
+                ctx = updatedWords[:4] # set new context = first 4 words of updated word list
+                sampleWords(ctx, updatedWords, visited, contexts_list, threshold) # call sampleWords with modified set of words
+
+
+            # make new context without the the word at index 1 of pair
+            # (because the contexts are ordered, word @ index 0 must be lower entropy than word @ index 1)
+            # append first word in word list that was not in ctx
+            else:
+                newCtx = filter(lambda x: x != ctx[idx1], ctx)
+                newCtx = newCtx + [temp[0]]
+                sampleWords(newCtx, words, visited, contexts_list, threshold) # call sampleWords on actual word set
+
 #---------------------------------------------------------------------------------
-#
+
+# add a 200th word to set by randomly selecting from bottom 50 words
+words = orderedWords + random.sample(orderedWords[-50:], 1)
+print(len(words))
+# 1) initialize with first four words (i.e. lemon, sun, tomato, fire)
+ctx = words[:4]
+div = getDivergences(ctx)
+contexts_list = []
+visited = []
+
+# call recursive function sampleWords to get contexts with threshold of overlap = 0.25
+sampleWords(ctx, words, visited, contexts_list, 0.25)
+
+print(contexts_list)
+
+# # maintain two lists of words: one with only the next options to be considered
+# # and one with the options that have been considered
 # words = orderedWords
+# print(words)
 # # 1) initialize with first four words (i.e. lemon, sun, tomato, fire)
 # ctx = words[:4]
+# ctx = ['lemon', 'love', 'tomato', 'spinach']
 # print(ctx)
+# # set threshold of overlap
+# threshold = 0.25
+#
+# # WHILE WORDS IS NOT EMPTY
 #
 # # 2) check overlap between those words
-# threshold = 0.3
 # div = getDivergences(ctx) # get matrix of divergences
 # overlaps = getOverlappingPairs(div, threshold) # get indices of pairs that are below threshold
-# print(div)
-# print(overlaps)
 #
-# # 3) if any pair of words has overlap LESS than threshold keep the one with
-# # smaller entropy and replace the other one with the next word in the list
-# if overlaps.size != 0:
-#     for pair in overlaps:
-#         # entropy0 = getWordEntropy(df_entropy, ctx[pair[0]])
-#         # entropy1 = getWordEntropy(df_entropy, ctx[pair[1]])
-#
-#         # remove the word in context at index 1 of this pair from the list of available words
-#         # (because the contexts are ordered, word @ index 0 must be lower entropy than word @ index 1)
-#         words = filter(lambda x: x != ctx[pair[0]], words)
-#
-#         # make new context without the the word at index 1 of pair
-#         newCtx = filter(lambda x: x != ctx[pair[1]], ctx)
-#         # append first word in word list that was not in ctx
-#         newCtx.append(list(filter(lambda i: i not in ctx, words))[0])
-#         print(newCtx)
-#
-#         print("")
+# # 3) if any pair of words has overlap > threshold
+# # keep the one with smaller entropy and replace the other one with the next word in the list (i.e. 'apple')
 #
 # # if there are no overlapping pairs for this context
-# # update word list having removed the words in the valid context
-# # set new context = first 4 words of word list
-# else:
+# if overlaps.size == 0:
+#     # update word list having removed the words in the valid context
 #     words = filter(lambda x: x not in ctx, words)
+#     # set new context = first 4 words of word list
 #     ctx = words[:4]
 #
+# # if any pair of words has overlap > threshold
+# else:
+#     ctx = newCtx
+#     print(words)
+#     for pair in overlaps:
 #
-# # check overlap between those words
-# # repeat (2)-(3) until all overlaps are less than threshold
-# # take those four words out of the list and repeat
+#         # indices of words in pair in context
+#         idx0 = pair[0]
+#         idx1 = pair[1]
+#
+#         # create temp list of words to consider without words in this context
+#         temp = filter(lambda x: x not in newCtx, words)
+#         print(temp)
+#
+#         # make new context without the the word at index 1 of pair
+#         # (because the contexts are ordered, word @ index 0 must be lower entropy than word @ index 1)
+#         # append first word in word list that was not in ctx
+#         newCtx = newCtx[:idx1] + newCtx[idx1+1:] + temp[0]
+#         print(newCtx)
+#         print("")
