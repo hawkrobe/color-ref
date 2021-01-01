@@ -243,14 +243,12 @@ def getWordEntropy(df, word):
     return points['entropy']
 
 # pick sets of 4 from words
-def sampleWords(ctx, words, visited, contexts_list, threshold):
-    # if there are only 4 words left, this must be a context
-    if len(words) == 0:
-        ctx = words
-        contexts_list.append(list(ctx))
-        print(len(contexts_list))
-        return contexts_list
-
+def radiusSampleWords(ctx, words, visited, contexts_list, threshold):
+    # if there are only 3 words left, this must be a context
+    if len(contexts_list) == 49:
+        ctx.append(random.sample(list(np.setdiff1d(np.array(orderedWords[-20:]), ctx)), 1)[0])
+        contexts_list.append(ctx)
+        return
 
     # 3) if any pair of words has overlap > threshold
     # keep the one with smaller entropy and replace the other one with the next word in the list (i.e. 'apple')
@@ -264,7 +262,7 @@ def sampleWords(ctx, words, visited, contexts_list, threshold):
         updatedWords = filter(lambda x: x not in ctx, words) # update word list having removed the words in the valid context
         visited = [] # set visited to empty
         ctx = updatedWords[:4] # set new context = first 4 words of updated word list
-        sampleWords(ctx, updatedWords, visited, contexts_list, threshold) # call sampleWords with modified set of words
+        return radiusSampleWords(ctx, updatedWords, visited, contexts_list, threshold) # call sampleWords with modified set of words
 
     else:
         for pair in overlaps:
@@ -280,10 +278,10 @@ def sampleWords(ctx, words, visited, contexts_list, threshold):
                 contexts_list.append(ctx) # append to list of valid contexts
                 print(len(contexts_list))
                 updatedWords = filter(lambda x: x not in ctx, words) # update word list having removed the words in the valid context
-                print(updatedWords)
                 visited = [] # set visited to empty
                 ctx = updatedWords[:4] # set new context = first 4 words of updated word list
-                sampleWords(ctx, updatedWords, visited, contexts_list, threshold) # call sampleWords with modified set of words
+
+                return radiusSampleWords(ctx, updatedWords, visited, contexts_list, threshold) # call sampleWords with modified set of words
 
 
             # make new context without the the word at index 1 of pair
@@ -292,13 +290,12 @@ def sampleWords(ctx, words, visited, contexts_list, threshold):
             else:
                 newCtx = filter(lambda x: x != ctx[idx1], ctx)
                 newCtx = newCtx + [temp[0]]
-                sampleWords(newCtx, words, visited, contexts_list, threshold) # call sampleWords on actual word set
+                return radiusSampleWords(newCtx, words, visited, contexts_list, threshold) # call sampleWords on actual word set
 
 #---------------------------------------------------------------------------------
 
-# add a 200th word to set by randomly selecting from bottom 50 words
-words = orderedWords + random.sample(orderedWords[-50:], 1)
-print(len(words))
+words = orderedWords
+
 # 1) initialize with first four words (i.e. lemon, sun, tomato, fire)
 ctx = words[:4]
 div = getDivergences(ctx)
@@ -306,54 +303,6 @@ contexts_list = []
 visited = []
 
 # call recursive function sampleWords to get contexts with threshold of overlap = 0.25
-sampleWords(ctx, words, visited, contexts_list, 0.25)
+radiusSampleWords(ctx, words, visited, contexts_list, 0.25)
 
 print(contexts_list)
-
-# # maintain two lists of words: one with only the next options to be considered
-# # and one with the options that have been considered
-# words = orderedWords
-# print(words)
-# # 1) initialize with first four words (i.e. lemon, sun, tomato, fire)
-# ctx = words[:4]
-# ctx = ['lemon', 'love', 'tomato', 'spinach']
-# print(ctx)
-# # set threshold of overlap
-# threshold = 0.25
-#
-# # WHILE WORDS IS NOT EMPTY
-#
-# # 2) check overlap between those words
-# div = getDivergences(ctx) # get matrix of divergences
-# overlaps = getOverlappingPairs(div, threshold) # get indices of pairs that are below threshold
-#
-# # 3) if any pair of words has overlap > threshold
-# # keep the one with smaller entropy and replace the other one with the next word in the list (i.e. 'apple')
-#
-# # if there are no overlapping pairs for this context
-# if overlaps.size == 0:
-#     # update word list having removed the words in the valid context
-#     words = filter(lambda x: x not in ctx, words)
-#     # set new context = first 4 words of word list
-#     ctx = words[:4]
-#
-# # if any pair of words has overlap > threshold
-# else:
-#     ctx = newCtx
-#     print(words)
-#     for pair in overlaps:
-#
-#         # indices of words in pair in context
-#         idx0 = pair[0]
-#         idx1 = pair[1]
-#
-#         # create temp list of words to consider without words in this context
-#         temp = filter(lambda x: x not in newCtx, words)
-#         print(temp)
-#
-#         # make new context without the the word at index 1 of pair
-#         # (because the contexts are ordered, word @ index 0 must be lower entropy than word @ index 1)
-#         # append first word in word list that was not in ctx
-#         newCtx = newCtx[:idx1] + newCtx[idx1+1:] + temp[0]
-#         print(newCtx)
-#         print("")
