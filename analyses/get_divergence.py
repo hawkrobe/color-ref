@@ -305,4 +305,7 @@ visited = []
 # call recursive function sampleWords to get contexts with threshold of overlap = 0.25
 radiusSampleWords(ctx, words, visited, contexts_list, 0.25)
 
-print(contexts_list)
+id = list(range(50))
+df_output = pd.DataFrame({'id':id, 'words':contexts_list})
+print(df_output)
+df_output.to_json('../data/contexts/radius-sampling/contexts-set1.json', orient='records')
