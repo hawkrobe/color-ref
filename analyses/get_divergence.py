@@ -401,7 +401,7 @@ contexts_list2 = []
 sampleSecondSet(ctx, words, visited, contexts_list2, 0.3)
 print("second set of contexts:")
 print(contexts_list2)
-print("number of contexts in second set = %d" % len(contexts_list2))
+print("-- number of contexts in second set = %d" % len(contexts_list2))
 print(" ")
 
 # because we only had 199 unique words, append another word to the end of the context with 3 words from the last 20 words according to entropy
@@ -414,7 +414,6 @@ for ctx2 in contexts_list2:
 # SAVE SECOND SET OF CONTEXTS
 id = list(range(50))
 df_output = pd.DataFrame({'id':id, 'words':contexts_list2})
-print(df_output)
 df_output.to_json('../data/contexts/radius-sampling/contexts-set2.json', orient='records')
 
 
@@ -431,9 +430,9 @@ for ctx1 in contexts_list:
             duplicates = True
 
 if duplicates:
-    print("duplicates found")
+    print("-- duplicates found")
 else:
-    print("no duplicates found")
+    print("-- no duplicates found")
 
 print(" ")
 
@@ -450,10 +449,21 @@ for ctx2 in contexts_list2:
         print(ctx2)
         print(div2)
 
-print("%d contexts in the second set have divergences less than %s" % (count, threshold))
+print("-- %d contexts in the second set have divergences less than %s" % (count, threshold))
 print(" ")
 
 for ctx2 in contexts_list2:
     if len(ctx2) < 4:
         print(ctx2)
         print("has less than 4 words")
+
+numWordsInSecondSet = len(set(itertools.chain.from_iterable(contexts_list2)))
+print("-- second set has %s unique words" % numWordsInSecondSet)
+
+#---------------------------------------------------------------------------------
+# SAVE ALL CONTEXTS
+allIds = list(range(100))
+contexts_list.extend(contexts_list2)
+allContexts = contexts_list
+df_finaloutput = pd.DataFrame({'id':allIds, 'words':allContexts})
+df_finaloutput.to_json('../data/contexts/radius-sampling/contexts-all.json', orient='records')
