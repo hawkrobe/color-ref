@@ -457,8 +457,14 @@ for ctx2 in contexts_list2:
         print(ctx2)
         print("has less than 4 words")
 
-numWordsInSecondSet = len(set(itertools.chain.from_iterable(contexts_list2)))
-print("-- second set has %s unique words" % numWordsInSecondSet)
+wordsInSecondSet = set(itertools.chain.from_iterable(contexts_list2))
+print("-- second set has %s unique words" % len(wordsInSecondSet))
+
+if len(set(orderedWords) - wordsInSecondSet) == 0:
+    print("-- words missing from second set of contexts = None" )
+else:
+    print(set(orderedWords) - wordsInSecondSet)
+
 
 #---------------------------------------------------------------------------------
 # SAVE ALL CONTEXTS
