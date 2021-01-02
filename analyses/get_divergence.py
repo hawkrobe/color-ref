@@ -334,8 +334,9 @@ def isOverlap(ctx, thisWord, threshold):
         if divergences[idx_i, idx_j] < threshold:
             return True
 
-def sampleSecondSet(ctx, words, visited, contexts_list2):
-    threshold = 0.3
+def sampleSecondSet(ctx, words, visited, contexts_list2, threshold):
+    if len(words) < 4:
+        return
 
     if len(contexts_list) == 49:
         ctx.append(random.sample(list(np.setdiff1d(np.array(orderedWords[-20:]), ctx)), 1)[0])
@@ -346,8 +347,11 @@ def sampleSecondSet(ctx, words, visited, contexts_list2):
         contexts_list2.append(ctx) # append to list of valid contexts
         updatedWords = filter(lambda x: x not in ctx, words) # update word list having removed the words in the valid context
         visited = [] # set visited to empty
-        ctx = updatedWords[:4] # set new context = first 4 words of updated word list
-        return sampleSecondSet(ctx, updatedWords, visited, contexts_list2) # call sampleSecondSet with modified set of words
+        if len(updatedWords) == 0:
+            return
+        else:
+            ctx = [updatedWords[0]] # set new context = next available word
+            return sampleSecondSet(ctx, updatedWords, visited, contexts_list2, threshold) # call sampleSecondSet with modified set of words
 
     else:
         visited.extend(ctx)
@@ -356,10 +360,13 @@ def sampleSecondSet(ctx, words, visited, contexts_list2):
 
         # if temp is empty and there are no more words to consider, just accept this context and return from this recursive call
         if len(temp) == 0:
-            ctx.append(random.sample(list(np.setdiff1d(np.array(orderedWords[-20:]), ctx)), 1)[0])
             contexts_list2.append(ctx) # append to list of valid contexts
+            threshold = 0.1
+            updatedWords = filter(lambda x: x not in ctx, words) # update word list having removed the words in the valid context
+            visited = [] # set visited to empty
+            ctx = [updatedWords[0]] # set new context = next available word
 
-            return
+            return sampleSecondSet(ctx, updatedWords, visited, contexts_list2, threshold)
 
         else:
             w = temp[0]
@@ -369,13 +376,13 @@ def sampleSecondSet(ctx, words, visited, contexts_list2):
             if (not wereTogetherBefore(ctx, w)) and (not isOverlap(ctx, w, threshold)):
                 # add it to this context
                 newCtx = ctx + [w]
-                return sampleSecondSet(newCtx, words, visited, contexts_list2) # call sampleSecondSet on actual word set
+                return sampleSecondSet(newCtx, words, visited, contexts_list2, threshold) # call sampleSecondSet on actual word set
 
             else:
                 # add w to visited
                 visited.append(w)
                 # call sampleSecondSet with new visited
-                return sampleSecondSet(ctx, words, visited, contexts_list2) # call sampleWords on actual word set
+                return sampleSecondSet(ctx, words, visited, contexts_list2, threshold) # call sampleWords on actual word set
 
 
 #---------------------------------------------------------------------------------
@@ -390,6 +397,35 @@ ctx = [words[0]]
 visited = []
 contexts_list2 = []
 
-sampleSecondSet(ctx, words, visited, contexts_list2)
+sampleSecondSet(ctx, words, visited, contexts_list2, 0.3)
 print("second set of contexts:")
 print(contexts_list2)
+print("number of contexts in second set = %d" % len(contexts_list2))
+print(" ")
+
+
+
+#---------------------------------------------------------------------------------
+# SANITY CHECKS
+
+# check for duplicate contexts
+duplicates = False
+for ctx1 in contexts_list:
+    for ctx2 in contexts_list2:
+        if ctx1 == ctx2:
+            duplicates = True
+
+if duplicates:
+    print("duplicates found")
+else:
+    print("no duplicates found")
+
+# # check that divergences of contexts in second set are below threshold
+# for ctx2 in contexts_list2:
+#     div2 = getDivergences(ctx2)
+#     overlaps = getOverlappingPairs(div2, threshold) # get indices of pairs that are below threshold
+#
+#     # if there are no overlapping pairs for this context
+#     if overlaps.size != 0:
+#         print(ctx2)
+#         print(div2)
