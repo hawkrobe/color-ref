@@ -388,6 +388,7 @@ def sampleSecondSet(ctx, words, visited, contexts_list2, threshold):
 #---------------------------------------------------------------------------------
 import itertools
 # flatten old contexts into new word list, except for last element which was a duplicate to get 200 words
+lastWordOfPreviousSet = list(itertools.chain.from_iterable(contexts_list))[-1]
 words = list(itertools.chain.from_iterable(contexts_list))[:-1]
 oldContexts = contexts_list
 threshold = 0.3
@@ -403,10 +404,24 @@ print(contexts_list2)
 print("number of contexts in second set = %d" % len(contexts_list2))
 print(" ")
 
+# because we only had 199 unique words, append another word to the end of the context with 3 words from the last 20 words according to entropy
+# make sure that the word that is appended was not also used twice in the previou set of 50 contexts (aka the very last word of that set)
+for ctx2 in contexts_list2:
+    if len(ctx2) == 3:
+        exclude = ctx2 + [lastWordOfPreviousSet]
+        ctx2.append(random.sample(list(np.setdiff1d(np.array(orderedWords[-20:]), exclude)), 1)[0])
+
+# SAVE SECOND SET OF CONTEXTS
+id = list(range(50))
+df_output = pd.DataFrame({'id':id, 'words':contexts_list2})
+print(df_output)
+df_output.to_json('../data/contexts/radius-sampling/contexts-set2.json', orient='records')
 
 
 #---------------------------------------------------------------------------------
 # SANITY CHECKS
+
+print("CROSS CHECKING CONTEXTS IN SECOND SET:")
 
 # check for duplicate contexts
 duplicates = False
@@ -420,12 +435,25 @@ if duplicates:
 else:
     print("no duplicates found")
 
-# # check that divergences of contexts in second set are below threshold
-# for ctx2 in contexts_list2:
-#     div2 = getDivergences(ctx2)
-#     overlaps = getOverlappingPairs(div2, threshold) # get indices of pairs that are below threshold
-#
-#     # if there are no overlapping pairs for this context
-#     if overlaps.size != 0:
-#         print(ctx2)
-#         print(div2)
+print(" ")
+
+# check how many contexts have divergences less than 0.3
+count = 0
+
+for ctx2 in contexts_list2:
+    div2 = getDivergences(ctx2)
+    overlaps = getOverlappingPairs(div2, threshold) # get indices of pairs that are below threshold
+
+    # if there are no overlapping pairs for this context
+    if overlaps.size != 0:
+        count += 1
+        print(ctx2)
+        print(div2)
+
+print("%d contexts in the second set have divergences less than %s" % (count, threshold))
+print(" ")
+
+for ctx2 in contexts_list2:
+    if len(ctx2) < 4:
+        print(ctx2)
+        print("has less than 4 words")
