@@ -216,7 +216,7 @@ divergences = computeDivergence(orderedWords, probabilities)
 # df_output.to_csv("./divergence/KL-divergence-%s.csv" % block, index=False)
 
 #---------------------------------------------------------------------------------
-# RADIUS SAMPLING ALGORITHM
+# RADIUS SAMPLING ALGORITHM: 1ST SET OF 50 CONTEXTS
 #---------------------------------------------------------------------------------
 # get symmetric matrix of divergences for this context
 # lower divergence = identical, higher divergence = different
@@ -258,7 +258,6 @@ def radiusSampleWords(ctx, words, visited, contexts_list, threshold):
     # if there are no overlapping pairs for this context
     if overlaps.size == 0:
         contexts_list.append(ctx) # append to list of valid contexts
-        print(len(contexts_list))
         updatedWords = filter(lambda x: x not in ctx, words) # update word list having removed the words in the valid context
         visited = [] # set visited to empty
         ctx = updatedWords[:4] # set new context = first 4 words of updated word list
@@ -276,7 +275,6 @@ def radiusSampleWords(ctx, words, visited, contexts_list, threshold):
             # if temp is empty and there are no more words to consider, just accept this context and return from this recursive call
             if len(temp) == 0:
                 contexts_list.append(ctx) # append to list of valid contexts
-                print(len(contexts_list))
                 updatedWords = filter(lambda x: x not in ctx, words) # update word list having removed the words in the valid context
                 visited = [] # set visited to empty
                 ctx = updatedWords[:4] # set new context = first 4 words of updated word list
@@ -303,9 +301,95 @@ contexts_list = []
 visited = []
 
 # call recursive function sampleWords to get contexts with threshold of overlap = 0.25
-radiusSampleWords(ctx, words, visited, contexts_list, 0.25)
+radiusSampleWords(ctx, words, visited, contexts_list, 0.3)
+print("first set of contexts:")
+print(contexts_list)
+print(" ")
+
 
 id = list(range(50))
 df_output = pd.DataFrame({'id':id, 'words':contexts_list})
-print(df_output)
-df_output.to_json('../data/contexts/radius-sampling/contexts-set1.json', orient='records')
+# print(df_output)
+# df_output.to_json('../data/contexts/radius-sampling/contexts-set1.json', orient='records')
+
+
+#---------------------------------------------------------------------------------
+# RADIUS SAMPLING ALGORITHM: SECOND SET OF 50 CONTEXTS
+#---------------------------------------------------------------------------------
+
+# check if thisWord was in a context with the other words in ctx
+def wereTogetherBefore(ctx, thisWord):
+    potentialCtx = ctx + [thisWord]
+    for index, oldCtx in enumerate(oldContexts):
+        for c in ctx:
+            if (c in oldCtx) and (thisWord in oldCtx):
+                return True
+
+def isOverlap(ctx, thisWord, threshold):
+    # get index of thisWord in orderedWords
+    idx_i = orderedWords.index(thisWord)
+    for j in range(len(ctx)):
+        # get index of word j in orderedWords
+        idx_j = orderedWords.index(ctx[j])
+        if divergences[idx_i, idx_j] < threshold:
+            return True
+
+def sampleSecondSet(ctx, words, visited, contexts_list2):
+    threshold = 0.3
+
+    if len(contexts_list) == 49:
+        ctx.append(random.sample(list(np.setdiff1d(np.array(orderedWords[-20:]), ctx)), 1)[0])
+        contexts_list2.append(ctx)
+        return
+
+    if len(ctx) == 4:
+        contexts_list2.append(ctx) # append to list of valid contexts
+        updatedWords = filter(lambda x: x not in ctx, words) # update word list having removed the words in the valid context
+        visited = [] # set visited to empty
+        ctx = updatedWords[:4] # set new context = first 4 words of updated word list
+        return sampleSecondSet(ctx, updatedWords, visited, contexts_list2) # call sampleSecondSet with modified set of words
+
+    else:
+        visited.extend(ctx)
+        # create temp list of words to consider without words that have been visited
+        temp = filter(lambda x: x not in visited, words)
+
+        # if temp is empty and there are no more words to consider, just accept this context and return from this recursive call
+        if len(temp) == 0:
+            ctx.append(random.sample(list(np.setdiff1d(np.array(orderedWords[-20:]), ctx)), 1)[0])
+            contexts_list2.append(ctx) # append to list of valid contexts
+
+            return
+
+        else:
+            w = temp[0]
+
+            # if this word was NOT already with any of the words in this context AND
+            # its overlap with any of the words is NOT below the threshold
+            if (not wereTogetherBefore(ctx, w)) and (not isOverlap(ctx, w, threshold)):
+                # add it to this context
+                newCtx = ctx + [w]
+                return sampleSecondSet(newCtx, words, visited, contexts_list2) # call sampleSecondSet on actual word set
+
+            else:
+                # add w to visited
+                visited.append(w)
+                # call sampleSecondSet with new visited
+                return sampleSecondSet(ctx, words, visited, contexts_list2) # call sampleWords on actual word set
+
+
+#---------------------------------------------------------------------------------
+import itertools
+# flatten old contexts into new word list, except for last element which was a duplicate to get 200 words
+words = list(itertools.chain.from_iterable(contexts_list))[:-1]
+oldContexts = contexts_list
+threshold = 0.3
+
+# initialize context with first word
+ctx = [words[0]]
+visited = []
+contexts_list2 = []
+
+sampleSecondSet(ctx, words, visited, contexts_list2)
+print("second set of contexts:")
+print(contexts_list2)
