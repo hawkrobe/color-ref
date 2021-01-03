@@ -5,6 +5,7 @@ import pandas as pd
 import seaborn as sns
 from colormath.color_conversions import convert_color
 from colormath.color_objects import LabColor, LCHabColor, SpectralColor, sRGBColor, XYZColor, LCHuvColor, IPTColor, HSVColor
+from colormath.color_diff import delta_e_cie2000
 
 #---------------------------------------------------------------------------------
 # INITIALIZE DATA
@@ -27,73 +28,60 @@ words = df_entropy['word'].to_list()
 # HELPER FUNCTIONS
 #---------------------------------------------------------------------------------
 
+# get rgb points in order of participant id; output = lists
 def selectRGBPoints(df, word):
     # select responses for this word
     points = df[df['word'] == word]
     # sort by participant ID to get all values in the same order
     points = points.sort_values(by=['aID'])
     # return points['aID'].to_list()
-    return points['response_r'].to_list(), points['response_g'].to_list(), points['response_b'].to_list()
+    return points['aID'].to_list(), points['response_r'].to_list(), points['response_g'].to_list(), points['response_b'].to_list()
 
-# convert RGB points to LAB
+# convert RGB points to LAB; output = numpy
 def RGBtoLAB(r, g, b):
-    lab_points = np.empty([len(r),3])
+    lab = np.empty([len(r),], dtype=object)
     for i in range(len(r)):
         # convert to [0,1] scaled rgb values
         c = (float(r[i])/255, float(g[i])/255, float(b[i])/255)
         # create RGB object
         rgb = sRGBColor(c[0], c[1], c[2])
         # convert
-        lab = convert_color(rgb, LabColor)
-        # get RGB values from object
-        lab = lab.get_value_tuple()
-        # store in array
-        lab_points[i, 0] = lab[0]
-        lab_points[i, 1] = lab[1]
-        lab_points[i, 2] = lab[2]
+        lab[i] = convert_color(rgb, LabColor)
 
-    return lab_points
+    return lab
 
-def getDistance(points1, points2):
-    diff_squared = (points1-points2)**2
-    return np.sqrt(np.sum(diff_squared, 1))
+# use Delta E (most complex + accurate color algorithm)
+# https://python-colormath.readthedocs.io/en/latest/delta_e.html
+# http://zschuessler.github.io/DeltaE/learn/
+def getDeltaE(lab1, lab2):
+    return delta_e_cie2000(lab1, lab2, Kl=1, Kc=1, Kh=1)
 
-def binarize(a):
-    # if this element is 0, block1 and block2 responses for this participant
-    # matched
-    if a == 0:
-        return 1
-    # if this element anything else, block1 and block2 responses for this
-    # participant did NOT match
-    else:
-        return 0
 
 #---------------------------------------------------------------------------------
-# compute distances between each participant's block1-block2 response for each word
+# compute deltaE between each participant's block1-block2 response for each word
 # output should be a distance
 
 df_output = pd.DataFrame()
+ids = np.arange(0, 100, 1)
 
 for index, word in enumerate(words):
     # get rgb responses for each block
-    r1, g1, b1 = selectRGBPoints(df_block1, word)
-    r2, g2, b2 = selectRGBPoints(df_block2, word)
+    aID1, r1, g1, b1 = selectRGBPoints(df_block1, word)
+    aID2, r2, g2, b2 = selectRGBPoints(df_block2, word)
 
     lab1 = RGBtoLAB(r1, g1, b1)
     lab2 = RGBtoLAB(r2, g2, b2)
 
-    # get distances between block1 and block2 responses for each participant
-    dists = getDistance(lab1, lab2).tolist()
+    # vectorize Delta E function
+    vectorizedDeltaE = np.vectorize(getDeltaE)
 
-    # binarize distances for logistic regression
-    vfunc = np.vectorize(binarize)
-    isMatch = vfunc(dists)
+    # calculate Delta E between lab1 and lab2 numpy arrays using vectorized deltaE function
+    deltaE = vectorizedDeltaE(lab1, lab2)
+    dfWords = [word] * len(deltaE)
 
-    dfWords = [word] * len(dists)
-    to_append = pd.DataFrame({'word':dfWords, 'distances':dists, 'isMatch':isMatch}, columns=['word', 'distances', 'isMatch'])
+    to_append = pd.DataFrame({'word':dfWords, 'aID': aID1, 'deltaE':deltaE}, columns=['word', 'aID', 'deltaE'])
 
     df_output = df_output.append(to_append, ignore_index=True)
 
-df_output.to_csv("./intra-participant/block1-block2-dists.csv", index=False)
-
-print(words[:10] + words[-10:])
+print(df_output)
+df_output.to_csv("./intra-participant/block1-block2-deltaE.csv", index=False)

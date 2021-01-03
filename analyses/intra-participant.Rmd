@@ -11,18 +11,18 @@ library(xtable)
 library(broom)
 ```
 
-# Expectation ratings box plot
+# all responses
 ```{r}
-d = read_csv('./intra-participant/block1-block2-dists.csv') 
+d = read_csv('./intra-participant/block1-block2-deltaE.csv') 
 ```
 
 
 # plotting dists for 5 lowest entropy words individually
 ```{r}
-selectedWords <- filter(d, word %in% c('lemon', 'sun', 'tomato', 'fire', 'spinach'))
+selectedWords <- filter(d, word %in% c('lemon', 'sun', 'tomato', 'fire', 'spinach', 'daffodil'))
 
 selectedWords %>%
-  ggplot(aes(x = word, y = distances)) + 
+  ggplot(aes(x = word, y = deltaE)) + 
   geom_violin() +
   geom_boxplot(width = 0.1) +
   ggtitle("Distance between each participant's block1 and block2 color response")
@@ -32,11 +32,34 @@ selectedWords %>%
 selectedWords <- filter(d, word %in% c('magazine', 'randomness', 'complexity', 'responsibility', 'oddity'))
 
 selectedWords %>%
-  ggplot(aes(x = word, y = distances)) + 
+  ggplot(aes(x = word, y = deltaE)) + 
   geom_violin() +
   geom_boxplot(width = 0.1) +
   ggtitle("Distance between each participant's block1 and block2 color response")
 ```
+# average the block1-block2 deltaE's for each word and plot
+```{r}
+averageDeltaE <- aggregate(d[, 3], list(d$word), mean) %>%
+  rename(word = Group.1)
+
+every_nth = function(n) {
+  return(function(x) {x[c(TRUE, rep(FALSE, n - 1))]})
+}
+  
+
+averageDeltaE %>%
+  ggplot(aes(reorder(word, deltaE), deltaE))+
+  geom_col() + 
+  labs(x="Word", y= "Delta E (CIE2000)", title="Average Delta E between participants' block1 and block2 response") +
+  theme(axis.text.x = element_text(size = 4, angle = 90), axis.title=element_text(size=8)) +
+  theme(aspect.ratio=1/5) + 
+  scale_x_discrete(breaks = every_nth(n = 2))
+
+ggsave("./plots/average-block1-block2-deltaE.png", dpi=300, width=10, height=4)
+
+```
+
+
 
 
 
