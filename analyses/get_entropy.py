@@ -14,8 +14,8 @@ cols = ["word", "button_pressed", "response_munsell", "condition"]
 df = df[cols]
 
 # CHANGE CONDITION TO SELECT DIFFERENT BLOCK
-df = df[df['condition'] == 'block2_target_trial']
-block = "block2"
+# df = df[df['condition'] == 'block2_target_trial']
+block = "both"
 
 # identify target words
 uniqueWords = set(df['word'].to_list())
@@ -34,20 +34,25 @@ def selectWordResponses(df, word):
 #---------------------------------------------------------------------------------
 numChoices = 88
 # initialize numWords (20) x numColors (88) array
-countMatrix = np.empty([len(targetWords), numChoices], dtype=float)
+counts = np.empty([len(targetWords), numChoices], dtype=float)
+probabilities = np.empty([len(targetWords), numChoices], dtype=float)
 entropies = np.empty([len(targetWords),])
 
 for index, word in enumerate(targetWords):
     responses = np.array(selectWordResponses(df, word))
 
-    pseudoCount = 1.0/len(responses)
+    pseudoCount = 1/numChoices
 
-    # count number of responses for each color for this word
-    # remove 0's by adding psuedo counts of 1/numObservations
-    # divide by number of choices to get probability
-    countMatrix[index,:] = [(np.count_nonzero(responses == i) + pseudoCount)/numChoices for i in range(88)]
+    # count number of responses for each color for this word by adding
+    # psuedo counts of 1/numChoices to every cell
+    counts[index,:] = [(np.count_nonzero(responses == i) + pseudoCount) for i in range(numChoices)]
+
+# normalize by dividing by total updated counts for that word
+for index, word in enumerate(targetWords):
+    probabilities[index,:] = counts[index,:]/np.sum(counts[index,:])
+
     # calculate entropy
-    entropies[index] = scipy.stats.entropy(countMatrix[index,:], base=2)
+    entropies[index] = scipy.stats.entropy(probabilities[index,:], base=2)
 
 #---------------------------------------------------------------------------------
 # sort words in order of ascending entropy
@@ -60,4 +65,4 @@ cols = ['word', block]
 df2 = df2[cols]
 print(df2)
 # save df as csv
-df2.to_csv("./entropy/sorted-entropies-all-%s.csv" % block, index=False)
+df2.to_csv("./entropy/sorted-entropies-all-%s-88.csv" % block, index=False)
