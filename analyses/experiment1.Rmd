@@ -78,3 +78,19 @@ d %>%
   group_by(word) %>%
   do(ggsave(.$word, device = 'png', plot = show_col(.$hex, labels = F)))
 ```
+
+Relationship between variance and entropy
+
+```{r}
+library(ggrepel)
+read_csv('../data/norming/compiled-variance-entropy-glasgowRatings.csv') %>%
+  filter(imageability != 'N/A') %>%
+  mutate(imageability = as.numeric(imageability),
+         concreteness = as.numeric(concreteness)) %>%
+  ggplot(aes(x = variance, y = entropy)) +
+    geom_text_repel(aes(label = word), max.overlaps = 100, label.size = 0.1) +
+    geom_smooth(method ='lm')
+var = filteredData$variance
+entp = filteredData$entropy
+text(var, entp+0.1, label=words, cex=0.5)
+```
