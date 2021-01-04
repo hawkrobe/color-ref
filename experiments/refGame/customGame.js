@@ -3,7 +3,7 @@ var fs    = require('fs');
 var assert = require('assert');
 var utils  = require(__base + 'src/sharedUtils.js');
 var ServerGame = require(__base + 'src/game.js')['ServerGame'];
-const contextPath = '../../data/contexts/divergence-rejection-sampling/';
+const contextPath = '../../data/contexts/radius-sampling/';
 
 class ServerRefGame extends ServerGame {
   constructor(config) {
