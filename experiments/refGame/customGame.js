@@ -8,17 +8,17 @@ const contextPath = '../../data/contexts/radius-sampling/';
 class ServerRefGame extends ServerGame {
   constructor(config) {
     super(config);
-    const concretes = _.clone(_.sampleSize(require(`${contextPath}/concrete-contexts.json`), 2));
-    const abstracts = _.clone(_.sampleSize(require(`${contextPath}/abstract-contexts.json`), 2));
-    this.contexts = {'concrete' : concretes[0], 'abstract' : abstracts[0]};
-    this.controls = {'concrete' : concretes[1], 'abstract' : abstracts[1]};
+    const concretes = _.clone(_.sampleSize(require(`${contextPath}/concrete-contexts.json`), 1));
+    const abstracts = _.clone(_.sampleSize(require(`${contextPath}/abstract-contexts.json`), 1));
+    this.controls = {'concrete' : concretes[0], 'abstract' : abstracts[0]};
     this.numBlocks = 6;
     this.numTrialsInBlock = 8;
     this.ready = false;
+
+    // this is silly but different places use 'Trials' vs. 'Rounds'
     this.numTrials = this.numBlocks * this.numTrialsInBlock + 2;
     this.numRounds = this.numBlocks * this.numTrialsInBlock + 2;    
     this.firstRole = _.sample(['speaker', 'listener']);
-    this.trialList = this.makeTrialList();
   }
 
   customEvents (socket) {  }
@@ -145,43 +145,5 @@ class ServerRefGame extends ServerGame {
   */
   dataOutput () {}
 }
-  //   function commonOutput (client, message_data) {
-  //     //var target = client.game.currStim.target;
-  //     //var distractor = target == 'g1' ? 'g0' : 'g1';
-  //     return {
-  //    // targetGoalSet: client.game.currStim.goalSets[target],
-  //    // distractorGoalSet: client.game.currStim.goalSets[distractor],
-  //    firstRole: client.game.firstRole
-  //     };
-  //   };
-
-
-
-  //   var exitSurveyOutput = function(client, message_data) {
-  //     var subjInfo = JSON.parse(message_data.slice(1));
-  //     return _.extend(
-  //    _.omit(commonOutput(client, message_data),
-  //           ['targetGoalSet', 'distractorGoalSet', 'trialType', 'trialNum']),
-  //    subjInfo);
-  //   };
-
-  //   var responseOutput = function(client, message_data) {
-  //     var selections = message_data.slice(3);
-  //     var allObjs = client.game.currStim.hiddenCards;
-  //     return _.extend(
-  //    commonOutput(client, message_data), {
-  //      sender: message_data[1],
-  //      timeFromMessage: message_data[2],
-  //      revealedObjs : selections,
-  //      numRevealed : selections.length,
-  //      fullContext: 
-  //    });
-  //   };
-
-  //   return {
-  //     'sendResponse' : responseOutput,
-  //     'exitSurvey' : exitSurveyOutput
-  //   };
-  // }}
 
 module.exports = ServerRefGame;
