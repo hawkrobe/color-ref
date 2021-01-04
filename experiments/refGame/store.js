@@ -53,6 +53,25 @@ function mongoConnectWithRetry(delayInMilliseconds, callback) {
   });
 }
 
+function retrieveCondition(coll, condition, gameid, callback) {
+  coll.findOneAndUpdate({
+    condition: condition
+  }, {
+    $push : {games : gameid},
+    $inc  : {numGames : 1}
+  }, {
+    sort: { numGames : 1 },
+    limit : 1
+  }, (err, results) => {
+    if(err) {
+      console.log(err);
+    } else {
+      console.log(results);
+      callback(results);
+    }
+  });
+}
+
 function serve() {
 
   mongoConnectWithRetry(2000, (connection) => {
@@ -147,6 +166,36 @@ function serve() {
       });
     });
 
+    app.post('/db/getstims', (request, response) => {
+      if (!request.body) {
+	return failure(response, '/db/getstims needs post request body');
+      }
+      console.log(`got request to get stims from ${request.body.dbname}/${request.body.colname}`);
+
+      const databaseName = request.body.dbname;
+      const collectionName = request.body.colname;
+      if (!collectionName) {
+	return failure(response, '/db/getstims needs collection');
+      }
+      if (!databaseName) {
+	return failure(response, '/db/getstims needs database');
+      }
+
+      const database = connection.db(databaseName);
+      const collection = database.collection(collectionName);
+
+      // sort by number of times previously served up and take the first
+      retrieveCondition(collection, 'concrete', request.body.gameid, (concreteResults) => {
+	retrieveCondition(collection, 'abstract', request.body.gameid, (abstractResults) => {
+	  response.send({
+	    'concrete': concreteResults,
+	    'abstract' : abstractResults
+	  });
+	});
+      });
+    });
+    
+    
     app.listen(port, () => {
       log(`running at http://localhost:${port}`);
     });
