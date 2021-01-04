@@ -188,8 +188,8 @@ function serve() {
       retrieveCondition(collection, 'concrete', request.body.gameid, (concreteResults) => {
 	retrieveCondition(collection, 'abstract', request.body.gameid, (abstractResults) => {
 	  response.send({
-	    'concrete': concreteResults,
-	    'abstract' : abstractResults
+	    'concrete': concreteResults.value,
+	    'abstract' : abstractResults.value
 	  });
 	});
       });
