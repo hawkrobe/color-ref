@@ -149,7 +149,7 @@ class ReferenceGameServer {
       } else {
 	console.log(`error getting stims: ${error} ${body}`);
 	console.log(`falling back to random selections`);
-	const contextPath = '../../data/contexts/radius-sampling/';
+	const contextPath = '../../../data/contexts/radius-sampling/';
 	const concretes = _.clone(_.sampleSize(require(`${contextPath}/concrete-contexts.json`), 1));
 	const abstracts = _.clone(_.sampleSize(require(`${contextPath}/abstract-contexts.json`), 1));
 	callback({'concrete' : concretes[0], 'abstract' : abstracts[0]});
