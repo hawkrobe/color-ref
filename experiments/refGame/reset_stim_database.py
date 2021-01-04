@@ -30,7 +30,7 @@ concrete_sets = pd.read_json('../../data/contexts/radius-sampling/concrete-conte
 abstract_sets = pd.read_json('../../data/contexts/radius-sampling/abstract-contexts.json',
                              'records')
 
-for row_i, row in concrete_sets.iterrows() :
+for row_i, row in concrete_sets.sample(frac=1).iterrows() :
     packet = {
         'words' : row.words,
         'id' : row.id,
@@ -40,7 +40,7 @@ for row_i, row in concrete_sets.iterrows() :
     }
     stim_coll.insert_one(packet)
 
-for row_i, row in abstract_sets.iterrows() :
+for row_i, row in abstract_sets.sample(frac=1).iterrows() :
     packet = {
         'words' : row.words,
         'id' : row.id,
