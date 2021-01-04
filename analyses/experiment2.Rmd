@@ -1,0 +1,52 @@
+---
+title: "Experiment 2"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(ggthemes)
+library(lme4)
+library(lmerTest)
+library(here)
+
+d <- read_csv(here('data/dataFromMongo.csv'))
+```
+
+```{r}
+completeIDs <- d %>%
+  filter(!is.na(correct)) %>%
+  group_by(gameId) %>%
+  tally() %>%
+  filter(n == 48) %>%
+  pull(gameId)
+
+cat('we have', length(completeIDs), 'complete games')
+```
+
+```{r}
+d %>% 
+  filter(!is.na(correct)) %>%
+  filter(gameId %in% completeIDs) %>%
+  separate(context_id, into = c('condition', 'context_id')) %>%
+  group_by(blockNum, condition) %>%
+  tidyboot::tidyboot_mean(correct) %>%
+  ggplot(aes(x = blockNum, y = empirical_stat, color = condition)) +
+    geom_point() +
+    geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0) +
+    geom_smooth(method = 'lm', se = F, formula = y ~ poly(x,2)) +
+    theme_few() +
+    labs(y = '% accuracy', x = 'block #')
+```
+
+```{r}
+d %>% 
+  filter(!is.na(correct)) %>%
+  filter(gameId %in% completeIDs) %>%
+  separate(context_id, into = c('condition', 'context_id')) %>%
+  glm(correct ~ condition * poly(blockNum, 2),
+      family = 'binomial',
+      data = .,
+      contrasts = list(condition = contr.sum(2))) %>%
+  summary()
+```
