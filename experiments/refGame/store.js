@@ -53,23 +53,31 @@ function mongoConnectWithRetry(delayInMilliseconds, callback) {
   });
 }
 
-function retrieveCondition(coll, condition, gameid, callback) {
-  coll.findOneAndUpdate({
-    condition: condition
-  }, {
-    $push : {games : gameid},
-    $inc  : {numGames : 1}
-  }, {
-    sort: { numGames : 1 },
-    limit : 1
-  }, (err, results) => {
-    if(err) {
-      console.log(err);
-    } else {
-      console.log(results);
-      callback(results);
-    }
+async function retrieveCondition(coll, condition, gameid, callback) {
+  // Find entry with min number of games
+  const minGame = await coll.findOne({}, {sort: {numGames: 1, limit: 1}});
+
+  // Get the total number of entries with that min number
+  const size = await coll.count({
+    condition: condition,
+    numGames: minGame['numGames']
   });
+
+  // Generate an integer n between 0 and that number
+  const random = Math.floor(Math.random() * size);
+
+  // Use skip to pick the nth entry (i.e. random context)
+  const context = await coll.findOne(
+    {condition: condition, numGames: minGame['numGames']},
+    {sort: { numGames : 1 }, limit : 1, skip: random}
+  );
+
+  // Increment number of games for the chosen context and return
+  coll.updateOne(
+    {id: context['id']},
+    {$push : {games : gameid}, $inc  : {numGames : 1}},
+    (err, result) => {callback(context);}
+  );
 }
 
 function serve() {
@@ -188,8 +196,8 @@ function serve() {
       retrieveCondition(collection, 'concrete', request.body.gameid, (concreteResults) => {
 	retrieveCondition(collection, 'abstract', request.body.gameid, (abstractResults) => {
 	  response.send({
-	    'concrete': concreteResults.value,
-	    'abstract' : abstractResults.value
+	    'concrete': concreteResults,
+	    'abstract' : abstractResults
 	  });
 	});
       });
