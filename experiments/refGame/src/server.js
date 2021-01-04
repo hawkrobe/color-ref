@@ -128,9 +128,34 @@ class ReferenceGameServer {
 
     // Start game
     if(game.playersThreshold == game.playerCount) {
-      game.start();
+      this.retrieveStims(game.id, stims => {
+	game.start(stims);
+      });
     }
   };
+  
+  retrieveStims(gameid, callback) {
+    const sendPostRequest = require('request').post;
+    sendPostRequest('http://localhost:6004/db/getstims', {
+      json: {
+	dbname: 'color-ref',
+	colname: 'context-stims',
+	gameid: gameid
+      }
+    }, (error, res, body) => {
+      if (!error && res.statusCode === 200) {
+	console.log('sending stim: ', body);
+	callback(body);
+      } else {
+	console.log(`error getting stims: ${error} ${body}`);
+	console.log(`falling back to random selections`);
+	const contextPath = '../../data/contexts/radius-sampling/';
+	const concretes = _.clone(_.sampleSize(require(`${contextPath}/concrete-contexts.json`), 1));
+	const abstracts = _.clone(_.sampleSize(require(`${contextPath}/abstract-contexts.json`), 1));
+	callback({'concrete' : concretes[0], 'abstract' : abstracts[0]});
+      }
+    });
+  }
 
   // we are requesting to kill a game in progress.
   // This gets called if someone disconnects
