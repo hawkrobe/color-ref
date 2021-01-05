@@ -17,7 +17,7 @@ dEntropy = read_csv('./entropy/sorted-entropies-all-block1.csv')
 
 # combine into one dataframe
 d <- merge(dDeltaE, dEntropy) %>%
-  rename(deltaE = "Delta-E-CIE-2000", entropy = block1)
+  rename(entropy = block1)
 
 ```
 # plot entropy vs. delta E 
