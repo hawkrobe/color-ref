@@ -18,14 +18,10 @@ dTruth = read_csv('./expectation/ground-truth-by-condition.csv')
 
 # word level response
 ```{r}
-# Average expectation rating slider 
-avgExpectation <- aggregate(dExpectation[, 2], list(dExpectation$word), mean)
-# Each person and say what percent matched their response -> then average that 
-avgTruth <- aggregate(dTruth[, 2], list(dTruth$word), mean)
-
 # Z score averages of expectation rating and actual percent matches (across participants) and compare
 expectation <- aggregate(dExpectation[, 2], list(dExpectation$word), mean) %>% 
-  mutate(zscore = (sliderResponse - mean(sliderResponse))/sd(sliderResponse))
+  mutate(zscore = (sliderResponse - mean(sliderResponse))/sd(sliderResponse)) %>%
+  rename(word = "Group.1", avgExpectation = sliderResponse)
 
 truth <-  aggregate(dTruth[, 2], list(dTruth$word), mean) %>% 
   mutate(zscore = (groundTruth - mean(groundTruth))/sd(groundTruth))
@@ -33,6 +29,24 @@ truth <-  aggregate(dTruth[, 2], list(dTruth$word), mean) %>%
 # plot word level responses (averaged over participants + z-scored)
 ```{r}
 scatter.smooth(x=expectation$zscore, y=truth$zscore, xlab="Average expecation rating", ylab="Average percent agreement", main="Expected agreement vs. actual agreement")
+```
+# Compare DeltaE among participants' block 2 responses against average slider rating
+```{r}
+dDeltaE = read_csv('./deltaE/sorted-deltaE-CIE2000-block2.csv') 
+
+# zscoring:
+deltaE <- dDeltaE[order(dDeltaE$word),] %>%
+  mutate(zscore = (deltaE - mean(deltaE))/sd(deltaE))
+# averaging slider + zscoring
+expectation <- aggregate(dExpectation[, 2], list(dExpectation$word), mean) %>%
+  rename(word = "Group.1", avgExpectation = sliderResponse) %>%
+  mutate(zscore = (avgExpectation - mean(avgExpectation))/sd(avgExpectation))
+
+# plot
+scatter.smooth(x=expectation$zscore, y=deltaE$zscore, xlab="Average expecation rating", ylab="Average Delta E among block2 repsonses", main="Expected agreement vs. average Delta E")
+
+# correlation
+cor.test(expectation$zscore, deltaE$zscore)
 ```
 
 # Expectation ratings box plot
@@ -46,8 +60,6 @@ ggboxplot(dExpectation, y = "sliderResponse", main= "Expected Agreement by Condi
 
 # Ground truth boxplot
 ```{r}
-
-
 ggboxplot(dTruth, y = "groundTruth", main= "Actual Agreement by Condition",
           color = "condition", palette = c("#D8644B", "#4B7CD8"),
           order = c("concrete", "abstract"), ylim = c(0, 100),
