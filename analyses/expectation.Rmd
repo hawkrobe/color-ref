@@ -16,7 +16,7 @@ dExpectation = read_csv('./expectation/expectations-by-condition.csv')
 dTruth = read_csv('./expectation/ground-truth-by-condition.csv') 
 ```
 
-# word level response
+# Word level response
 ```{r}
 # Z score averages of expectation rating and actual percent matches (across participants) and compare
 expectation <- aggregate(dExpectation[, 2], list(dExpectation$word), mean) %>% 
@@ -25,9 +25,8 @@ expectation <- aggregate(dExpectation[, 2], list(dExpectation$word), mean) %>%
 
 truth <-  aggregate(dTruth[, 2], list(dTruth$word), mean) %>% 
   mutate(zscore = (groundTruth - mean(groundTruth))/sd(groundTruth))
-```
+
 # plot word level responses (averaged over participants + z-scored)
-```{r}
 scatter.smooth(x=expectation$zscore, y=truth$zscore, xlab="Average expecation rating", ylab="Average percent agreement", main="Expected agreement vs. actual agreement")
 ```
 # Compare DeltaE among participants' block 2 responses against average slider rating
@@ -48,38 +47,58 @@ scatter.smooth(x=expectation$zscore, y=deltaE$zscore, xlab="Average expecation r
 # correlation
 cor.test(expectation$zscore, deltaE$zscore)
 ```
+# Expectation ratings vs. ground truth (calculated as percentage of total response that agreed with each participant's response)
 
-# Expectation ratings box plot
+### The following analyses show that the ground truth agreements are much lower than the slider responses for expected agreement. Plotting the distributions of the expected and actual agreements for the 10 words with the least entropy in their prior distributions (i.e. most agreement), shows that only the words whose distributions would be expected to center around yellows, have an actual agreement that is somewhat reflective of their concreteness and expectation ratings. Meanwhile, the words whose response distributions would be expected to center on reds ("tomato", "fire", "apple") and greens ("spinach", "vegetable", "tree") have actual agreements that are much lower than expected. In the context of the munsell space that participants selected from--one which has a larger variety of red and green color choices, but very few yellow ones--this discrepancy suggests that when people rate their expected agreement they're considering the space of all reds, greens, etc. as "sharing" their color association (vs. the particular color they picked), but in reality words like "tomato" and "fire" and "vegetable" have many of different red or green responses that deflate the agreement.
 ```{r}
 library("ggpubr")
 ggboxplot(dExpectation, y = "sliderResponse", main= "Expected Agreement by Condition",
-          color = "condition", palette = c("#D8644B", "#4B7CD8"),
-          order = c("concrete", "abstract"), ylim = c(0, 100),
-          ylab = "% of population expected to share one's color association", xlab="words")
+          color = "condition", order = c("concrete", "abstract"), ylim = c(0, 100),
+          ylab = "% of population expected to share association") +
+  theme(axis.ticks.x=element_blank(), axis.text.x=element_blank(), axis.title.x=element_blank())
 ```
 
-# Ground truth boxplot
+### Ground truth boxplot
 ```{r}
 ggboxplot(dTruth, y = "groundTruth", main= "Actual Agreement by Condition",
-          color = "condition", palette = c("#D8644B", "#4B7CD8"),
-          order = c("concrete", "abstract"), ylim = c(0, 100),
-          ylab = "% of population actually sharing color association", xlab="words")
+          color = "condition", order = c("concrete", "abstract"), ylim = c(0, 100),
+          ylab = "% of population actually sharing color association") +
+    theme(axis.ticks.x=element_blank(), axis.text.x=element_blank(), axis.title.x=element_blank())
 ```
 
-# plotting expectation for top and bottom 10 words individually
+### plotting expected and actual agreement for top 10 words individually
 ```{r}
-selectedWords <- filter(dExpectation, word %in% c("lemon", "sun", "tomato", "fire", "apple", "spinach", "vegetable", "tree", "daffodil"))
+# define "expected" and "actual" condition columns
+expect <- rep(c("expected"),each=981)
+actual <- rep(c("actual"),each=981)
 
-boxplot(sliderResponse~word, data=selectedWords, main="Expected Agreement",
-   xlab="Words", ylab="% of population expected to share one's color association", ylim = c(0, 100))
+# prepare datasets to be combined
+selectedExpectation <- filter(dExpectation, word %in% c("lemon", "sun", "tomato", "fire", "apple", "spinach", "vegetable", "tree", "daffodil")) %>%
+  subset(select=-condition) %>%
+  rename(value = sliderResponse) %>%
+  cbind(condition = expect)
+  
+selectedActual <- filter(dTruth, word %in% c("lemon", "sun", "tomato", "fire", "apple", "spinach", "vegetable", "tree", "daffodil")) %>%
+  subset(select=-condition) %>%
+  rename(value = groundTruth) %>%
+  cbind(condition = actual)
+# append datasets
+both <- rbind(selectedActual, selectedExpectation)
+
+# plot
+ggplot(both, aes(x=word, y=value, fill=condition)) +
+  geom_boxplot() +
+  ggtitle("Actual vs. Expected Agreement") +
+  labs(y="% agreement", x = "Word") +
+  # facet_wrap(~condition) +
+  coord_cartesian(ylim = c(0, 100)) +
+  theme(axis.text.x = element_text(size = 10, angle = 45), axis.title=element_text(size=12))
+
 ```
+# Logistic regression
 
-# plotting actual agreement for top 10 words individually
 ```{r}
-selectedWords <- filter(dTruth, word %in% c("lemon", "sun", "tomato", "fire", "apple", "spinach", "vegetable", "tree", "daffodil"))
 
-boxplot(groundTruth~word, data=selectedWords, main="Actual Agreement",
-   xlab="Words", ylab="% of population actually sharing association", ylim = c(0, 100))
 ```
 
 
