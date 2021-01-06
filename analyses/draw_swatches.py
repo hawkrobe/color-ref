@@ -25,8 +25,8 @@ cols = ["word", "button_pressed", "response_munsell", "response_r", "response_g"
 df = df[cols]
 
 # CHANGE CONDITION TO SELECT DIFFERENT BLOCK
-df = df[df['condition'] == 'block1_target_trial']
-block = "block1"
+# df = df[df['condition'] == 'block1_target_trial']
+block = "both"
 
 # LOAD ORDERED LIST OF WORDS BY ENTROPY
 df_entropy = pd.read_csv(r'./entropy/sorted-entropies-all-%s.csv' % block)
@@ -102,7 +102,8 @@ numChoices = 88
 rgbVals = []
 munsellVals = []
 
-words = words[:10] + words[-10:]
+# words = words[:10] # first 10 (least entropy) words
+words = words[-10:] # last 10 (highest entropy) words
 fig, ax = plt.subplots(len(words), 1, figsize=(width,height))
 
 #--------------------------------------------
@@ -196,8 +197,8 @@ for index, word in enumerate(words):
 
         ax[index].get_xaxis().set_ticks([])
         ax[index].get_yaxis().set_ticks([])
-        ax[index].set_ylabel(word, fontsize='x-small', rotation='horizontal')
+        ax[index].set_ylabel(word, fontsize='x-small', rotation='horizontal', ha='right')
 
 
-plt.savefig('stepSort-block1Responses-continuous.png',bbox_inches='tight',dpi=300)
+plt.savefig('./plots/stepSort-allResponses-abstract.png',bbox_inches='tight',dpi=300)
 # plt.show()
