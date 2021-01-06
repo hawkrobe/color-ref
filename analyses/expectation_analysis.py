@@ -135,10 +135,8 @@ for word_index, word in enumerate(words):
                     match.append(0) # append 0 for False
 
 
-print(len(dfWords))
-
 # save to dataframe
-df_regression = pd.DataFrame({'word':dfWords, 'aID1':aID1, 'aID2':aID2, 'matchYN':match, 'aID1-expectation':aID1_expectation}, columns=['word', 'aID1', 'aID2', 'matchYN', 'aID1-expectation'])
+df_regression = pd.DataFrame({'word':dfWords, 'aID1':aID1, 'aID2':aID2, 'matchYN':match, 'aID1Expectation':aID1_expectation}, columns=['word', 'aID1', 'aID2', 'matchYN', 'aID1Expectation'])
 print(df_regression)
 # save df as csv
 df_regression.to_csv("./expectation/logistic-regression.csv", index=False)
