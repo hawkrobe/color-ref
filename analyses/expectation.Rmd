@@ -98,6 +98,12 @@ ggplot(both, aes(x=word, y=value, fill=condition)) +
 # Logistic regression
 
 ```{r}
+require(lme4)
+dLogistic = read_csv('./expectation/logistic-regression.csv') 
+
+m <- glmer(matchYN ~ aID1Expectation + (1 | aID1), data = dLogistic)
+# print the mod results without correlations among fixed effects
+print(m)
 
 ```
 
