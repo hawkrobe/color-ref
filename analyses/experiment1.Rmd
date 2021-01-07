@@ -1,0 +1,315 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Import libraries
+
+```{r}
+library(tidyverse)
+library(knitr)
+library(scales)
+library(xtable)
+library(ggrepel)
+```
+
+# Import raw data
+
+```{r}
+d.raw = read_csv('../data/norming/dataFromMongo.csv') 
+```
+
+Check how many people failed catch trials
+
+```{r results='asis'}
+d.raw %>%
+  group_by(aID) %>%
+  unite(trial_chunk, trial_type, condition) %>%
+  filter(trial_index == last(trial_index)) %>%
+  group_by(trial_chunk) %>%
+  tally() %>%
+  kable() %>%
+  cat(sep = '\n')
+```
+
+Only include participants who completed exactly 89 color-picker trials (all 80 words + 9 practice/catch)
+
+```{r}
+complete_games = d.raw %>%
+  filter(trial_type == 'color-picker') %>%
+  group_by(aID) %>%
+  tally() %>%
+  filter(n == 89) %>% 
+  pull(aID)
+
+cat('including', length(complete_games), 'complete games')
+```
+
+
+
+```{r}
+d <- d.raw %>%
+  filter(aID %in% complete_games)
+
+d %>%
+  group_by(wordSetID, aID) %>%
+  tally() %>%
+  group_by(wordSetID) %>%
+  tally()
+```
+
+Save filtered data for Python scripts
+
+```{r}
+words <- d %>%
+  pull(word) %>%
+  unique()
+
+colorAssociations <- d %>%
+  filter(trial_type == 'color-picker')
+
+write.csv(colorAssociations, "../data/norming/colorPickerData-0.csv", row.names = TRUE)
+  
+```
+
+Visualize color grids
+
+```{r}
+d %>%
+  filter(trial_type == 'color-picker') %>%
+  mutate(hex = rgb(response_r/255, response_g/255, response_b/255)) %>%
+  group_by(word) %>%
+  do(ggsave(.$word, device = 'png', plot = show_col(.$hex, labels = F)))
+```
+
+Relationship between variance and entropy
+
+```{r}
+read_csv('../data/norming/compiled-variance-entropy-glasgowRatings.csv') %>%
+  filter(imageability != 'N/A') %>%
+  mutate(imageability = as.numeric(imageability),
+         concreteness = as.numeric(concreteness)) %>%
+  ggplot(aes(x = variance, y = entropy)) +
+    geom_text(aes(label = word)) +
+    geom_smooth(method ='lm')
+```
+
+
+```{r}
+d = read_csv('../data/norming/compiled-variance-entropy-glasgowRatings.csv') 
+```
+
+```{r}
+filteredData = d %>%
+  filter(imageability != 'N/A') %>%
+  mutate(imageability = as.numeric(imageability),
+         concreteness = as.numeric(concreteness))
+```
+# visualize variables
+
+```{r}
+filteredData %>%
+  mutate(log_variance = log(variance)) %>%
+  pivot_longer(-word) %>%
+  ggplot(aes(x = value)) +
+    geom_histogram() +
+    facet_wrap(~ name, scales='free') +
+    theme_few()
+```
+
+```{r}
+scatter.smooth(x=filteredData$variance, y=filteredData$imageability)
+scatter.smooth(x=filteredData$variance, y=filteredData$concreteness)
+scatter.smooth(x=filteredData$entropy, y=filteredData$imageability)
+scatter.smooth(x=filteredData$entropy, y=filteredData$concreteness)
+```
+
+# Examine relationship between DVs
+
+```{r}
+cor(filteredData$entropy, filteredData$variance, method = 'spearman')
+cor(filteredData$entropy, filteredData$concreteness, method = 'spearman')
+cor(filteredData$entropy, filteredData$imageability, method = 'spearman')
+```
+
+# Build and diagnose linear model for IMAGEABILITY
+
+```{r}
+# correlation
+cat('variance-imageability correlation = ', cor(filteredData$variance, filteredData$imageability))
+cor.test(filteredData$variance, filteredData$imageability)
+
+# get summary stats
+linearModIMAG <- lm(log(variance) ~ imageability, data=filteredData) # imageability as a function of variance
+imagSummary <- summary(linearModIMAG) # capture model summary as an object
+print(imagSummary)
+
+# calculate summary stats for practice
+imagCoeffs <- imagSummary$coefficients # model coefficients
+beta.estimate <- imagCoeffs["variance", "Estimate"]  # get beta estimate for variance
+std.error <- imagCoeffs["variance", "Std. Error"]  # get std.error for variance
+
+t_value_imag <- beta.estimate/std.error  # calc t statistic
+# larger t-value indicates that it is less likely that the coefficient is not equal to zero purely by chance
+
+p_value_imag <- 2*pt(-abs(t_value), df=nrow(filteredData)-ncol(filteredData))  # calc p Value
+# when p Value is less than significance level (< 0.05), we can safely reject the null hypothesis that the co-efficient β of the predictor is zero
+
+f_statistic <- linearModIMAG$fstatistic[1]  # fstatistic
+f <- summary(linearModIMAG)$fstatistic  # parameters for model p-value calc
+model_p <- pf(f[1], f[2], f[3], lower=FALSE)
+```
+
+# Build and diagnose linear model for CONCRETENESS
+```{r}
+# correlation
+cat('entropy-concreteness correlation = ', cor(filteredData$entropy, filteredData$concreteness))
+cat('concreteness-imagability correlation = ', cor(filteredData$imageability, filteredData$concreteness))
+cor.test(filteredData$entropy, filteredData$concreteness)
+
+# get summary stats
+# concreteness as a function of variance
+linearModImg <- filteredData %>%
+  lm(log(entropy) ~ imageability,
+     data = .)
+
+linearModConcrete <- filteredData %>%
+  lm(log(entropy) ~ concreteness, 
+     data=.) 
+
+linearModBoth <- filteredData %>%
+  lm(log(entropy) ~ imageability + concreteness,
+     data=.) 
+
+anova(linearModImg, linearModBoth)
+anova(linearModConcrete, linearModBoth)
+cncSummary <- summary(linearModBoth)
+print(cncSummary)
+```
+
+```{r}
+linearMod <- lm(variance ~ imageability + concreteness, data=filteredData)
+print(summary(linearMod))
+
+linearMod <- lm(entropy ~ imageability + concreteness, data=filteredData)
+print(summary(linearMod))
+```
+
+
+
+# Attempt at mixed effects model
+http://www.bodowinter.com/uploads/1/2/9/3/129362560/bw_lme_tutorial2.pdf
+```{r}
+library(lme4)
+
+mixedModel <- lmer(imageability ~ variance + (1|word), data=filteredData, control=lmerControl(check.nobs.vs.nlev = "ignore", check.nobs.vs.rankZ = "ignore", check.nobs.vs.nRE="ignore"))
+summary(mixedModel)
+```
+
+```{r}
+ordered <- filteredData[order( filteredData[,3] ),]
+barplot(ordered$entropy, main="Entropy", xlab="words")
+```
+
+# Analysis 3: Compare expectations with analyses
+
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(knitr)
+library(scales)
+library(xtable)
+library(broom)
+```
+# load data
+```{r}
+dExpectation = read_csv('./expectation/expectations-by-condition.csv') 
+dTruth = read_csv('./expectation/ground-truth-by-condition.csv') 
+```
+
+# word level response
+```{r}
+# Average expectation rating slider 
+avgExpectation <- aggregate(dExpectation[, 2], list(dExpectation$word), mean)
+# Each person and say what percent matched their response -> then average that 
+avgTruth <- aggregate(dTruth[, 2], list(dTruth$word), mean)
+
+# Z score averages of expectation rating and actual percent matches (across participants) and compare
+expectation <- aggregate(dExpectation[, 2], list(dExpectation$word), mean) %>% 
+  mutate(zscore = (sliderResponse - mean(sliderResponse))/sd(sliderResponse))
+
+truth <-  aggregate(dTruth[, 2], list(dTruth$word), mean) %>% 
+  mutate(zscore = (groundTruth - mean(groundTruth))/sd(groundTruth))
+```
+# plot word level responses (averaged over participants + z-scored)
+```{r}
+scatter.smooth(x=expectation$zscore, y=truth$zscore, xlab="Average expecation rating", ylab="Average percent agreement", main="Expected agreement vs. actual agreement")
+```
+
+# Expectation ratings box plot
+```{r}
+library("ggpubr")
+ggboxplot(dExpectation, y = "sliderResponse", main= "Expected Agreement by Condition",
+          color = "condition", palette = c("#D8644B", "#4B7CD8"),
+          order = c("concrete", "abstract"), ylim = c(0, 100),
+          ylab = "% of population expected to share one's color association", xlab="words")
+```
+
+# Ground truth boxplot
+```{r}
+
+
+ggboxplot(dTruth, y = "groundTruth", main= "Actual Agreement by Condition",
+          color = "condition", palette = c("#D8644B", "#4B7CD8"),
+          order = c("concrete", "abstract"), ylim = c(0, 100),
+          ylab = "% of population actually sharing color association", xlab="words")
+```
+
+# plotting expectation for top and bottom 10 words individually
+```{r}
+selectedWords <- filter(dExpectation, word %in% c("lemon", "sun", "tomato", "fire", "apple", "spinach", "vegetable", "tree", "daffodil"))
+
+boxplot(sliderResponse~word, data=selectedWords, main="Expected Agreement",
+   xlab="Words", ylab="% of population expected to share one's color association", ylim = c(0, 100))
+```
+
+# plotting actual agreement for top 10 words individually
+```{r}
+selectedWords <- filter(dTruth, word %in% c("lemon", "sun", "tomato", "fire", "apple", "spinach", "vegetable", "tree", "daffodil"))
+
+boxplot(groundTruth~word, data=selectedWords, main="Actual Agreement",
+   xlab="Words", ylab="% of population actually sharing association", ylim = c(0, 100))
+```
+
+
+<!-- # compare expectation to entropy for each word -->
+<!-- ```{r} -->
+
+<!-- filtered <- d %>% -->
+<!--   mutate(sliderResponse = as.numeric(sliderResponse)) -->
+<!-- # calculate mean per group  -->
+<!-- avgExpectation <- aggregate(filtered$sliderResponse, by = list(filtered$word), FUN = mean) -->
+
+<!-- # load and format entropy data -->
+<!-- f = read_csv('./entropy/sorted-entropies-all-both.csv')  -->
+
+<!-- f = f %>% -->
+<!--   mutate(both = as.numeric(both)) -
+
+<!-- scatter.smooth(x=f$both, y=avgExpectation$x, xlab = "Entropy of participants' color associations for all words", ylab = "Average % of population expected to share one's color association") -->
+<!-- ``` -->
+
+<!-- # attempt to combine entropy ratings and slider responses to do a mixed effect model with subject as the random effect -->
+<!-- ```{r} -->
+<!-- library(lme4) -->
+
+<!-- # NEED TO JOIN DATAFRAMES -->
+<!-- mixedModel <- lmer(filtered$entropy ~ d$sliderResponse  + (1|d$aID)) -->
+<!-- summary(mixedModel) -->
+<!-- ``` -->
+
+

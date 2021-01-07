@@ -1,6 +1,6 @@
-var player = require('./player.js');
-var io = require('socket.io-client');
-var _ = require('lodash');
+const player = require('./player.js');
+const io = require('socket.io-client');
+const _ = require('lodash');
 
 class Game {
   constructor(config){
@@ -77,10 +77,11 @@ class ServerGame extends Game {
     return state;
   };
 
-  start () {
+  start (stims) {
     this.active = true;
+    this.contexts = stims;
     this.trialList = this.makeTrialList();
-    this.numRounds = this.trialList.length;    
+    this.numRounds = this.trialList.length;
     this.newRound();
   }
 

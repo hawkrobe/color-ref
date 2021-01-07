@@ -1,0 +1,349 @@
+---
+title: "Experiment 2"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(ggthemes)
+library(lme4)
+library(lmerTest)
+library(tidyboot)
+library(here)
+library(spacesXYZ)
+
+d.raw <- read_csv(here('data/ref-game/dataFromMongo.csv'),
+              col_types = 'ccnccccccnccnncnnnncncccncccl')
+```
+
+## Implement exclusion criterion
+
+Remove games that disconnected partway through
+
+```{r}
+completeIDs <- d.raw %>%
+  filter(!is.na(correct)) %>%
+  group_by(gameId) %>%
+  tally() %>%
+  filter(n == 48) %>%
+  pull(gameId)
+
+
+cat('we have', length(completeIDs), 'complete games out of the',
+    d.raw %>%   group_by(gameId) %>%  tally() %>% pull(gameId) %>% length(),
+    'that we recruited')
+```
+
+Remove participants who failed catch trials in pre-test or post-test.
+
+Valid responses are a liberal boundary of all chips that could plausibly be considered red or blue.
+
+```{r}
+valid_responses_red = c(0, 9, 11, 12, 20, 22, 23, 30, 31, 33, 34, 42, 44, 45, 
+                        52, 53, 55, 56, 64, 66, 67, 74, 75, 77, 78, 85, 86)
+valid_responses_blue = c(4, 5, 6, 15, 16, 17, 18, 26, 27, 28, 29, 37, 38, 39, 
+                         40, 48, 49, 50, 51, 59, 60, 61, 62, 70, 71, 72, 73, 81, 82, 83, 84)
+passedCatchIDs <- d.raw %>%
+  filter(gameId %in% completeIDs) %>%
+  filter(condition == 'catch') %>%
+  mutate(valid = ifelse(target == 'blue', button_pressed %in% valid_responses_blue, 
+                        button_pressed %in% valid_responses_red)) %>%
+  group_by(gameId) %>%
+  summarize(valid = all(valid)) %>%
+  filter(valid) %>%
+  pull(gameId) %>%
+  unique()
+
+cat(length(passedCatchIDs), '/', length(completeIDs), 'complete games had both participants pass the catch trials')
+```
+
+Look at overall RT distribution (some on the low end...)
+
+```{r}
+d.raw %>%
+  filter(gameId %in% passedCatchIDs) %>%
+  filter(phase == 'refGame') %>%
+  ggplot(aes(x = log(rt))) +
+    geom_histogram() +
+    facet_grid(dataType ~. )
+```
+Look at participant-level rt distribution for any outliers that consistently responded much quicker/slower than others.
+
+```{r}
+d.raw %>%
+  filter(gameId %in% passedCatchIDs) %>%
+  filter(phase == 'refGame') %>%
+  group_by(playerId, dataType) %>%
+  summarize(rt = mean(log(rt))) %>%
+  ggplot(aes(x = rt)) +
+    geom_histogram() +
+    facet_grid(dataType ~. )
+```
+
+# Analysis 1: predict communciative success as a function of the prior
+
+## 1.1: using independently elicited norms 
+
+We start using entropy of population distribution of associations measured from earlier participants as a predictor of communicative success
+
+```{r}
+clicks <- d %>%
+  filter(dataType == 'clickedWord') %>%
+  filter(gameId %in% passedCatchIDs) %>%
+  select(which(colMeans(is.na(.)) < 0.5)) %>%
+  separate(context_id, into = c('condition', 'context_id')) 
+```
+
+Plot by condition 
+
+```{r}
+clicks %>%
+  group_by(blockNum, condition) %>%
+  tidyboot::tidyboot_mean(correct) %>%
+  ggplot(aes(x = blockNum, y = empirical_stat, color = condition)) +
+    geom_point() +
+    geom_hline(yintercept = c(1,0.25), linetype = 'dotted') +
+    geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0) +
+    geom_smooth(method = 'lm', se = F, formula = y ~ poly(x,2)) +
+    theme_few() +
+    ylim(0.25, 1.01) +
+    labs(y = '% accuracy', x = 'block #')
+```
+
+Statistics at within-participant level
+
+```{r}
+# Singular, but roughly the same estimate as the bayesian model so not critical
+clicks %>%  
+  glmer(correct ~ condition * blockNum + 
+                 (condition * blockNum  | gameId),
+      family = 'binomial',
+      contrasts = list(condition = contr.treatment(2, base = 1)),
+      control = glmerControl(optimizer = 'bobyqa'),
+      data = .) %>%
+  summary()
+```
+
+```{r}
+# Bayesian version: note that this takes a long time to run!
+# clicks %>%  
+#   brms::brm(correct ~ condition * poly(blockNum,2) + 
+#                 (condition * poly(blockNum,2)  | gameId) + 
+#                 (poly(blockNum,2)  | target),
+#       family = brms::bernoulli(link = "logit"),
+#       data = .) %>%
+#   summary()
+```
+
+```
+# Chain 4:                219.962 seconds (Total)
+# Chain 4: 
+#  Family: bernoulli 
+#   Links: mu = logit 
+# Formula: correct ~ condition * blockNum + (1 + condition * blockNum | gameId) + (1 + blockNum | target) 
+#    Data: . (Number of observations: 5136) 
+# Samples: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+#          total post-warmup samples = 4000
+# 
+# Group-Level Effects: 
+# ~gameId (Number of levels: 107) 
+#                                                   Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS
+# sd(Intercept)                                         0.62      0.12     0.39     0.86 1.00     2141
+# sd(conditionconcrete)                                 1.24      0.20     0.86     1.65 1.00     1045
+# sd(blockNum)                                          0.29      0.05     0.20     0.38 1.00     1754
+# sd(conditionconcrete:blockNum)                        0.25      0.10     0.04     0.44 1.01      744
+# cor(Intercept,conditionconcrete)                     -0.36      0.19    -0.68     0.06 1.00      820
+# cor(Intercept,blockNum)                               0.56      0.21     0.12     0.91 1.00      721
+# cor(conditionconcrete,blockNum)                      -0.13      0.19    -0.49     0.24 1.00     1494
+# cor(Intercept,conditionconcrete:blockNum)            -0.21      0.30    -0.76     0.38 1.00     1619
+# cor(conditionconcrete,conditionconcrete:blockNum)     0.34      0.30    -0.28     0.86 1.00     1564
+# cor(blockNum,conditionconcrete:blockNum)             -0.05      0.30    -0.61     0.57 1.00     1763
+#                                                   Tail_ESS
+# sd(Intercept)                                         2831
+# sd(conditionconcrete)                                 2170
+# sd(blockNum)                                          2748
+# sd(conditionconcrete:blockNum)                         954
+# cor(Intercept,conditionconcrete)                      1531
+# cor(Intercept,blockNum)                               1524
+# cor(conditionconcrete,blockNum)                       2898
+# cor(Intercept,conditionconcrete:blockNum)             2542
+# cor(conditionconcrete,conditionconcrete:blockNum)     1929
+# cor(blockNum,conditionconcrete:blockNum)              2682
+# 
+# ~target (Number of levels: 199) 
+#                         Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+# sd(Intercept)               0.58      0.10     0.40     0.77 1.00     2226     2765
+# sd(blockNum)                0.12      0.05     0.02     0.21 1.01      460      714
+# cor(Intercept,blockNum)     0.48      0.34    -0.23     0.97 1.01      873     1570
+# 
+# Population-Level Effects: 
+#                            Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+# Intercept                      0.13      0.12    -0.10     0.36 1.00     4240     3377
+# conditionconcrete              0.87      0.20     0.48     1.27 1.00     3154     3309
+# blockNum                       0.42      0.05     0.33     0.52 1.00     3024     2347
+# conditionconcrete:blockNum     0.22      0.08     0.07     0.38 1.00     2718     2762
+# 
+# Samples were drawn using sampling(NUTS). For each parameter, Bulk_ESS
+# and Tail_ESS are effective sample size measures, and Rhat is the potential
+# scale reduction factor on split chains (at convergence, Rhat = 1).
+```
+
+## Analysis 1.2: Using pre-test similarity instead of entropy
+
+Extract response similarity on pre-test
+
+```{r}
+# convert to LAB
+colors <- d %>%
+  filter(dataType == 'sentColor') %>%
+  filter(gameId %in% passedCatchIDs) %>%
+  select(which(colMeans(is.na(.)) < 0.5)) %>%
+  do(cbind(., data.frame(convertColor(matrix(c(.$response_r, .$response_g, .$response_b), ncol = 3)/255, 
+                          from = 'sRGB', to = 'Lab'))))
+
+# compute DeltaE
+pre_test_dists <- colors %>%
+  filter(phase == 'pre', set == 'test') %>%
+  select(gameId, playerId, target, L, a, b) %>%
+  group_by(gameId, target) %>%
+  mutate(playerId =  row_number()) %>%
+  pivot_wider(names_from = playerId, 
+              values_from = c(L, a, b)) %>%
+  mutate(prior_dist = spacesXYZ::DeltaE(matrix(c(L_1, a_1, b_1), ncol = 3), 
+                                        matrix(c(L_2, a_2, b_2), ncol = 3), 
+                                        metric = '2000'))
+```
+
+Plot accuracy curves for different quantiles of similarity in pre-test scores
+
+```{r}
+clicks %>%
+  left_join(pre_test_dists) %>%
+  ungroup() %>%
+  mutate(dist_quantile = cut_number(prior_dist, n = 5)) %>%
+  group_by(blockNum, dist_quantile) %>%
+  tidyboot::tidyboot_mean(correct) %>%
+  ggplot(aes(x = blockNum, y = empirical_stat, 
+             color = as.numeric(dist_quantile), group = as.numeric(dist_quantile))) +
+    geom_point() +
+    geom_hline(yintercept = c(0.25, 1), linetype = 'dotted') +
+    geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0) +
+    geom_smooth(method = 'lm', se = F, formula = y ~ poly(x,1)) +
+    theme_few() +
+    ylim(0.25, 1.1) +
+    labs(y = '% accuracy', x = 'block #')
+```
+
+```{r}
+clicks %>%
+  left_join(pre_test_dists) %>%
+  group_by(blockNum, context_id) %>%
+  summarize(n = length(correct),
+            correct = mean(correct),
+            dist = mean(prior_dist)) %>%
+  ggplot(aes(x = dist, y = correct)) +
+    geom_point() +
+    geom_smooth(method = 'lm', se = F, formula = y ~ poly(x,1)) +
+    theme_few() +
+    facet_wrap(~ paste0('block #', blockNum)) +
+    labs(y = '% accuracy', x = 'distance in pre-test')
+```
+
+No evidence for interaction using the continuous measure of distance in pre-test.
+
+```{r}
+clicks %>%  
+  left_join(pre_test_dists) %>%
+  ungroup() %>%
+  mutate(prior_dist = scale(prior_dist)) %>%
+  glmer(correct ~ prior_dist * blockNum +
+                 (prior_dist : blockNum || gameId),
+      control = glmerControl(optimizer = 'bobyqa'),
+      family = 'binomial',
+      data = .) %>%
+  summary()
+```
+
+# Analysis 2: Change from pre- to post-test
+
+```{r}
+pre_post_dists <- colors %>%
+  filter(phase != 'refGame') %>%
+  select(gameId, playerId, set, condition, phase, target, L, a, b) %>%
+  group_by(gameId, target, phase, set, condition) %>%
+  mutate(playerId =  row_number()) %>%
+  pivot_wider(names_from = playerId, 
+              values_from = c(L, a, b)) %>%
+  mutate(prior_dist = spacesXYZ::DeltaE(matrix(c(L_1, a_1, b_1), ncol = 3), 
+                                        matrix(c(L_2, a_2, b_2), ncol = 3), 
+                                        metric = '2000')) %>%
+  filter(condition != 'catch')
+
+pre_post_dists %>%
+  group_by(set, condition, phase) %>%
+  tidyboot_mean(prior_dist) %>%
+  ungroup() %>%
+  mutate(`set` = fct_relevel(`set`, 'test')) %>%
+  mutate(phase = fct_relevel(phase, 'pre')) %>%
+  ggplot(aes(x = phase, y = empirical_stat, 
+             color = condition, linetype = set, 
+             group = interaction(set, condition))) +
+    geom_line() +
+    geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0) +
+    labs(y = 'euclidean distance between partner associations', x = '') +
+    ylim(0, 50) +
+    theme_few()
+```
+
+Stats for pre-post design...
+
+```{r}
+pre_post_dists %>%
+  lmer(prior_dist ~ set * condition * phase + 
+                   (set + condition + phase | gameId),
+       contrasts = list(set = contr.sum(2),
+                        condition = contr.sum(2),
+                        phase = contr.sum(2)),
+       data = .) %>%
+  summary()
+```
+
+# Supplementary analyses (not included in paper)
+
+Plot relationship between quantiles of prior entropy & accuracy (i.e. breaking out the discrete conditions into the finer-grained measure of entropy)
+
+```{r}
+entropies <- read_csv(here('analyses/entropy/sorted-entropies-all-both.csv')) %>%
+  mutate(quantile = cut_number(both, n = 5)) %>%
+  rename(target = word, prior_entropy = both) %>%
+  select(-condition)
+
+clicks %>%
+  left_join(entropies, by = c('target'))%>%
+  group_by(blockNum, quantile) %>%
+  tidyboot::tidyboot_mean(correct) %>%
+  ggplot(aes(x = blockNum, y = empirical_stat, color = as.numeric(quantile), group = as.numeric(quantile))) +
+    geom_point() +
+    geom_hline(yintercept = c(0.25, 1), linetype = 'dotted') +
+    geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0) +
+    geom_smooth(method = 'lm', se = F, formula = y ~ poly(x,1)) +
+    theme_few() +
+    ylim(0.25, 1.1) +
+    labs(y = '% accuracy', x = 'block #')
+```
+
+Look at the relationship between avg prior entropy and accuracy on each block.
+
+```{r}
+clicks %>%
+  left_join(entropies, by = c('target'))%>%
+  group_by(blockNum, context_id) %>%
+  summarize(correct = mean(correct),
+            entropy = mean(prior_entropy)) %>%
+  ggplot(aes(x = entropy, y = correct)) +
+    geom_point() +
+    geom_smooth(method = 'lm', se = F, formula = y ~ poly(x,1)) +
+    theme_few() +
+    facet_wrap(~ blockNum) +
+    labs(y = '% accuracy', x = 'block #')
+```

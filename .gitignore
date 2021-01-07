@@ -1,4 +1,6 @@
 node_modules
+dataFromMongo.csv
 bundle.js*
 .DS_Store
 *~
+.Rproj.user
