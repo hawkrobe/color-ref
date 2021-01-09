@@ -16,7 +16,7 @@ library(ggrepel)
 # Import raw data
 
 ```{r}
-d.raw = read_csv('../data/norming/dataFromMongo.csv') 
+d.raw = read_csv('../data/norming/dataFromMongo-all.csv') 
 ```
 
 Check how many people failed catch trials
@@ -82,41 +82,20 @@ d %>%
   do(ggsave(.$word, device = 'png', plot = show_col(.$hex, labels = F)))
 ```
 
-Relationship between variance and entropy
+# Analysis 3: Compare expectations with ground truth metrics
 
-```{r}
-read_csv('../data/norming/compiled-variance-entropy-glasgowRatings.csv') %>%
-  filter(imageability != 'N/A') %>%
-  mutate(imageability = as.numeric(imageability),
-         concreteness = as.numeric(concreteness)) %>%
-  ggplot(aes(x = variance, y = entropy)) +
-    geom_text(aes(label = word)) +
-    geom_smooth(method ='lm')
-```
-
+## Examine relationship between variance and entropy
 
 ```{r}
 d = read_csv('../data/norming/compiled-variance-entropy-glasgowRatings.csv') 
-```
 
-```{r}
 filteredData = d %>%
   filter(imageability != 'N/A') %>%
   mutate(imageability = as.numeric(imageability),
          concreteness = as.numeric(concreteness))
 ```
-# visualize variables
 
-```{r}
-filteredData %>%
-  mutate(log_variance = log(variance)) %>%
-  pivot_longer(-word) %>%
-  ggplot(aes(x = value)) +
-    geom_histogram() +
-    facet_wrap(~ name, scales='free') +
-    theme_few()
-```
-
+## Visualize metrics
 ```{r}
 scatter.smooth(x=filteredData$variance, y=filteredData$imageability)
 scatter.smooth(x=filteredData$variance, y=filteredData$concreteness)
@@ -124,7 +103,7 @@ scatter.smooth(x=filteredData$entropy, y=filteredData$imageability)
 scatter.smooth(x=filteredData$entropy, y=filteredData$concreteness)
 ```
 
-# Examine relationship between DVs
+## Examine relationship between DVs
 
 ```{r}
 cor(filteredData$entropy, filteredData$variance, method = 'spearman')
@@ -132,7 +111,7 @@ cor(filteredData$entropy, filteredData$concreteness, method = 'spearman')
 cor(filteredData$entropy, filteredData$imageability, method = 'spearman')
 ```
 
-# Build and diagnose linear model for IMAGEABILITY
+## Build and diagnose linear model for IMAGEABILITY
 
 ```{r}
 # correlation
@@ -160,7 +139,7 @@ f <- summary(linearModIMAG)$fstatistic  # parameters for model p-value calc
 model_p <- pf(f[1], f[2], f[3], lower=FALSE)
 ```
 
-# Build and diagnose linear model for CONCRETENESS
+## Build and diagnose linear model for CONCRETENESS
 ```{r}
 # correlation
 cat('entropy-concreteness correlation = ', cor(filteredData$entropy, filteredData$concreteness))
@@ -195,9 +174,7 @@ linearMod <- lm(entropy ~ imageability + concreteness, data=filteredData)
 print(summary(linearMod))
 ```
 
-
-
-# Attempt at mixed effects model
+## Attempt at mixed effects model
 http://www.bodowinter.com/uploads/1/2/9/3/129362560/bw_lme_tutorial2.pdf
 ```{r}
 library(lme4)
@@ -211,105 +188,164 @@ ordered <- filteredData[order( filteredData[,3] ),]
 barplot(ordered$entropy, main="Entropy", xlab="words")
 ```
 
-# Analysis 3: Compare expectations with analyses
-
----
-title: "R Notebook"
-output: html_notebook
----
+# Analysis 2: Intra-participant variability
 
 ```{r}
-library(tidyverse)
-library(knitr)
-library(scales)
-library(xtable)
-library(broom)
+dIntraparticipant = read_csv('./intra-participant/block1-block2-deltaE.csv') 
 ```
-# load data
+
+## Plot DeltaE for 5 lowest entropy words individually
+```{r}
+selectedWords <- filter(dIntraparticipant, word %in% c('lemon', 'sun', 'tomato', 'fire', 'apple', 'spinach', 'vegetable', 'tree', 'daffodil', 'bone'))
+
+selectedWords %>%
+  ggplot(aes(x = word, y = deltaE)) + 
+  geom_violin() +
+  geom_boxplot(width = 0.1) +
+  labs(y="Delta E (CIE2000)", x = "Word") +
+  ggtitle("Delta E between individual participants' block1 and block2 color response")
+```
+# Plot DeltaE for 5 highest entropy words individually
+```{r}
+selectedWords <- filter(dIntraparticipant, word %in% c('noun', 'misconception', 'peculiarity', 'tendency', 'obligation', 'randomness', 'oddity', 'complexity', 'responsibility', 'absurdity'))
+
+selectedWords %>%
+  ggplot(aes(x = word, y = deltaE)) + 
+  geom_violin() +
+  geom_boxplot(width = 0.1) +
+  labs(y="Delta E (CIE2000)", x = "Word") +
+  ggtitle("Delta E between individual participants' block1 and block2 color response")
+```
+# Average block1-block2 deltaE's for each word and plot
+```{r}
+averageDeltaE <- aggregate(dIntraparticipant[, 3], list(dIntraparticipant$word), mean) %>%
+  rename(word = Group.1)
+
+every_nth = function(n) {
+  return(function(x) {x[c(TRUE, rep(FALSE, n - 1))]})
+}
+  
+averageDeltaE %>%
+  ggplot(aes(reorder(word, deltaE), deltaE))+
+  geom_col() + 
+  labs(x="Word", y= "Delta E (CIE2000)", title="Average Delta E between participants' block1 and block2 response") +
+  theme(axis.text.x = element_text(size = 4, angle = 90), axis.title=element_text(size=8)) +
+  theme(aspect.ratio=1/5) + 
+  scale_x_discrete(breaks = every_nth(n = 2))
+
+ggsave("./plots/average-block1-block2-deltaE.png", dpi=300, width=10, height=4)
+
+```
+
+
+# Analysis 3: Compare expectations with ground truth metrics
+
+## Compare expectation (average slider response) to actual percent agreement
 ```{r}
 dExpectation = read_csv('./expectation/expectations-by-condition.csv') 
 dTruth = read_csv('./expectation/ground-truth-by-condition.csv') 
-```
-
-# word level response
-```{r}
-# Average expectation rating slider 
-avgExpectation <- aggregate(dExpectation[, 2], list(dExpectation$word), mean)
-# Each person and say what percent matched their response -> then average that 
-avgTruth <- aggregate(dTruth[, 2], list(dTruth$word), mean)
 
 # Z score averages of expectation rating and actual percent matches (across participants) and compare
 expectation <- aggregate(dExpectation[, 2], list(dExpectation$word), mean) %>% 
-  mutate(zscore = (sliderResponse - mean(sliderResponse))/sd(sliderResponse))
+  mutate(zscore = (sliderResponse - mean(sliderResponse))/sd(sliderResponse)) %>%
+  rename(word = "Group.1", avgExpectation = sliderResponse)
 
 truth <-  aggregate(dTruth[, 2], list(dTruth$word), mean) %>% 
   mutate(zscore = (groundTruth - mean(groundTruth))/sd(groundTruth))
-```
+
 # plot word level responses (averaged over participants + z-scored)
-```{r}
 scatter.smooth(x=expectation$zscore, y=truth$zscore, xlab="Average expecation rating", ylab="Average percent agreement", main="Expected agreement vs. actual agreement")
 ```
+## Compare expectation (average slider response) to entropy
+```{r}
+# load and format entropy data
+dEntropy = read_csv('./entropy/sorted-entropies-all-both.csv')
 
-# Expectation ratings box plot
+entropy <- dEntropy[order(dEntropy$word),] %>%
+  mutate(both = as.numeric(both)) %>%
+  rename(entropy = both) %>%
+  mutate(zscore = (entropy - mean(entropy))/sd(entropy))
+  
+scatter.smooth(x=expectation$zscore, y=entropy$entropy, xlab = "Entropy of participants' color associations for all words", ylab = "Average % of population expected to share one's color association")
+
+# correlation
+cor.test(expectation$zscore, entropy$zscore)
+```
+
+## Compare expectation (average slider response) to DeltaE among participants' block 2 responses
+```{r}
+dDeltaE = read_csv('./deltaE/sorted-deltaE-CIE2000-block2.csv') 
+
+# zscoring:
+deltaE <- dDeltaE[order(dDeltaE$word),] %>%
+  mutate(zscore = (deltaE - mean(deltaE))/sd(deltaE))
+# averaging slider + zscoring
+expectation <- aggregate(dExpectation[, 2], list(dExpectation$word), mean) %>%
+  rename(word = "Group.1", avgExpectation = sliderResponse) %>%
+  mutate(zscore = (avgExpectation - mean(avgExpectation))/sd(avgExpectation))
+
+# plot
+scatter.smooth(x=expectation$zscore, y=deltaE$zscore, xlab="Average expecation rating", ylab="Average Delta E among block2 repsonses", main="Expected agreement vs. average Delta E")
+
+# correlation
+cor.test(expectation$zscore, deltaE$zscore)
+```
+## Expectation ratings vs. ground truth (calculated as percentage of total response that agreed with each participant's response)
+
+The following analyses show that the ground truth agreements are much lower than the slider responses for expected agreement. Plotting the distributions of the expected and actual agreements for the 10 words with the least entropy in their prior distributions (i.e. most agreement), shows that only the words whose distributions would be expected to center around yellows, have an actual agreement that is somewhat reflective of their concreteness and expectation ratings. Meanwhile, the words whose response distributions would be expected to center on reds ("tomato", "fire", "apple") and greens ("spinach", "vegetable", "tree") have actual agreements that are much lower than expected. In the context of the munsell space that participants selected from--one which has a larger variety of red and green color choices, but very few yellow ones--this discrepancy suggests that when people rate their expected agreement they're considering the space of all reds, greens, etc. as "sharing" their color association (vs. the particular color they picked), but in reality words like "tomato" and "fire" and "vegetable" have many of different red or green responses that deflate the agreement.
 ```{r}
 library("ggpubr")
 ggboxplot(dExpectation, y = "sliderResponse", main= "Expected Agreement by Condition",
-          color = "condition", palette = c("#D8644B", "#4B7CD8"),
-          order = c("concrete", "abstract"), ylim = c(0, 100),
-          ylab = "% of population expected to share one's color association", xlab="words")
+          color = "condition", order = c("concrete", "abstract"), ylim = c(0, 100),
+          ylab = "% of population expected to share association") +
+  theme(axis.ticks.x=element_blank(), axis.text.x=element_blank(), axis.title.x=element_blank())
 ```
 
-# Ground truth boxplot
+### Ground truth boxplot
 ```{r}
-
-
 ggboxplot(dTruth, y = "groundTruth", main= "Actual Agreement by Condition",
-          color = "condition", palette = c("#D8644B", "#4B7CD8"),
-          order = c("concrete", "abstract"), ylim = c(0, 100),
-          ylab = "% of population actually sharing color association", xlab="words")
+          color = "condition", order = c("concrete", "abstract"), ylim = c(0, 100),
+          ylab = "% of population actually sharing color association") +
+    theme(axis.ticks.x=element_blank(), axis.text.x=element_blank(), axis.title.x=element_blank())
 ```
 
-# plotting expectation for top and bottom 10 words individually
+### plotting expected and actual agreement for top 10 words individually
 ```{r}
-selectedWords <- filter(dExpectation, word %in% c("lemon", "sun", "tomato", "fire", "apple", "spinach", "vegetable", "tree", "daffodil"))
+# define "expected" and "actual" condition columns
+expect <- rep(c("expected"),each=981)
+actual <- rep(c("actual"),each=981)
 
-boxplot(sliderResponse~word, data=selectedWords, main="Expected Agreement",
-   xlab="Words", ylab="% of population expected to share one's color association", ylim = c(0, 100))
+# prepare datasets to be combined
+selectedExpectation <- filter(dExpectation, word %in% c("lemon", "sun", "tomato", "fire", "apple", "spinach", "vegetable", "tree", "daffodil")) %>%
+  subset(select=-condition) %>%
+  rename(value = sliderResponse) %>%
+  cbind(condition = expect)
+  
+selectedActual <- filter(dTruth, word %in% c("lemon", "sun", "tomato", "fire", "apple", "spinach", "vegetable", "tree", "daffodil")) %>%
+  subset(select=-condition) %>%
+  rename(value = groundTruth) %>%
+  cbind(condition = actual)
+# append datasets
+both <- rbind(selectedActual, selectedExpectation)
+
+# plot
+ggplot(both, aes(x=word, y=value, fill=condition)) +
+  geom_boxplot() +
+  ggtitle("Actual vs. Expected Agreement") +
+  labs(y="% agreement", x = "Word") +
+  # facet_wrap(~condition) +
+  coord_cartesian(ylim = c(0, 100)) +
+  theme(axis.text.x = element_text(size = 10, angle = 45), axis.title=element_text(size=12))
+
 ```
-
-# plotting actual agreement for top 10 words individually
+## Logistic regression
 ```{r}
-selectedWords <- filter(dTruth, word %in% c("lemon", "sun", "tomato", "fire", "apple", "spinach", "vegetable", "tree", "daffodil"))
+require(lme4)
+dLogistic = read_csv('./expectation/logistic-regression.csv') 
 
-boxplot(groundTruth~word, data=selectedWords, main="Actual Agreement",
-   xlab="Words", ylab="% of population actually sharing association", ylim = c(0, 100))
+m <- glmer(matchYN ~ aID1Expectation + (1 | aID1), data = dLogistic)
+# print the mod results without correlations among fixed effects
+print(m)
+
 ```
-
-
-<!-- # compare expectation to entropy for each word -->
-<!-- ```{r} -->
-
-<!-- filtered <- d %>% -->
-<!--   mutate(sliderResponse = as.numeric(sliderResponse)) -->
-<!-- # calculate mean per group  -->
-<!-- avgExpectation <- aggregate(filtered$sliderResponse, by = list(filtered$word), FUN = mean) -->
-
-<!-- # load and format entropy data -->
-<!-- f = read_csv('./entropy/sorted-entropies-all-both.csv')  -->
-
-<!-- f = f %>% -->
-<!--   mutate(both = as.numeric(both)) -
-
-<!-- scatter.smooth(x=f$both, y=avgExpectation$x, xlab = "Entropy of participants' color associations for all words", ylab = "Average % of population expected to share one's color association") -->
-<!-- ``` -->
-
-<!-- # attempt to combine entropy ratings and slider responses to do a mixed effect model with subject as the random effect -->
-<!-- ```{r} -->
-<!-- library(lme4) -->
-
-<!-- # NEED TO JOIN DATAFRAMES -->
-<!-- mixedModel <- lmer(filtered$entropy ~ d$sliderResponse  + (1|d$aID)) -->
-<!-- summary(mixedModel) -->
-<!-- ``` -->
-
 
