@@ -10,14 +10,12 @@ library(scales)
 library(xtable)
 library(broom)
 ```
-# load data
-```{r}
-dExpectation = read_csv('./expectation/expectations-by-condition.csv') 
-dTruth = read_csv('./expectation/ground-truth-by-condition.csv') 
-```
 
 # Word level response
 ```{r}
+dExpectation = read_csv('./expectation/expectations-by-condition.csv') 
+dTruth = read_csv('./expectation/ground-truth-by-condition.csv') 
+
 # Z score averages of expectation rating and actual percent matches (across participants) and compare
 expectation <- aggregate(dExpectation[, 2], list(dExpectation$word), mean) %>% 
   mutate(zscore = (sliderResponse - mean(sliderResponse))/sd(sliderResponse)) %>%
@@ -29,6 +27,22 @@ truth <-  aggregate(dTruth[, 2], list(dTruth$word), mean) %>%
 # plot word level responses (averaged over participants + z-scored)
 scatter.smooth(x=expectation$zscore, y=truth$zscore, xlab="Average expecation rating", ylab="Average percent agreement", main="Expected agreement vs. actual agreement")
 ```
+# compare expectation to entropy for each word
+```{r}
+# load and format entropy data
+dEntropy = read_csv('./entropy/sorted-entropies-all-both.csv')
+
+entropy <- dEntropy[order(dEntropy$word),] %>%
+  mutate(both = as.numeric(both)) %>%
+  rename(entropy = both) %>%
+  mutate(zscore = (entropy - mean(entropy))/sd(entropy))
+  
+scatter.smooth(x=expectation$zscore, y=entropy$entropy, xlab = "Entropy of participants' color associations for all words", ylab = "Average % of population expected to share one's color association")
+
+# correlation
+cor.test(expectation$zscore, entropy$zscore)
+```
+
 # Compare DeltaE among participants' block 2 responses against average slider rating
 ```{r}
 dDeltaE = read_csv('./deltaE/sorted-deltaE-CIE2000-block2.csv') 
@@ -106,32 +120,4 @@ m <- glmer(matchYN ~ aID1Expectation + (1 | aID1), data = dLogistic)
 print(m)
 
 ```
-
-
-<!-- # compare expectation to entropy for each word -->
-<!-- ```{r} -->
-
-<!-- filtered <- d %>% -->
-<!--   mutate(sliderResponse = as.numeric(sliderResponse)) -->
-<!-- # calculate mean per group  -->
-<!-- avgExpectation <- aggregate(filtered$sliderResponse, by = list(filtered$word), FUN = mean) -->
-
-<!-- # load and format entropy data -->
-<!-- f = read_csv('./entropy/sorted-entropies-all-both.csv')  -->
-
-<!-- f = f %>% -->
-<!--   mutate(both = as.numeric(both)) -
-
-<!-- scatter.smooth(x=f$both, y=avgExpectation$x, xlab = "Entropy of participants' color associations for all words", ylab = "Average % of population expected to share one's color association") -->
-<!-- ``` -->
-
-<!-- # attempt to combine entropy ratings and slider responses to do a mixed effect model with subject as the random effect -->
-<!-- ```{r} -->
-<!-- library(lme4) -->
-
-<!-- # NEED TO JOIN DATAFRAMES -->
-<!-- mixedModel <- lmer(filtered$entropy ~ d$sliderResponse  + (1|d$aID)) -->
-<!-- summary(mixedModel) -->
-<!-- ``` -->
-
 
