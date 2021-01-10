@@ -24,6 +24,7 @@
 # slider ratings by condition: expectation-by-condition.csv
 # ground truth by condition: ground-truth-by-condition.csv
 # logistic regression on participant match (block2): logistic-regression.csv
+# ^ note: file too big to upload to git
 # deltaE: sorted-deltaE-block2.csv
 #===============================================================================
 
