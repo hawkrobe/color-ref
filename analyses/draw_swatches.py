@@ -101,9 +101,11 @@ height= 10
 numChoices = 88
 rgbVals = []
 munsellVals = []
+condition = 'concrete'
 
-# words = words[:10] # first 10 (least entropy) words
-words = words[-10:] # last 10 (highest entropy) words
+# first 10 (least entropy) words
+# last 10 (highest entropy) words
+words = words[-10:] if condition == 'abstract' else words[:10] 
 fig, ax = plt.subplots(len(words), 1, figsize=(width,height))
 
 #--------------------------------------------
@@ -155,7 +157,7 @@ for index, word in enumerate(words):
 
 
     # step sort the non-greyscale colors
-    rgb.sort(key=lambda(r,g,b): stepSort(r,g,b,8))
+    rgb.sort(key=lambda r,g,b: stepSort(r,g,b,8))
 
     # concatenate reversed greyscale values to the sorted colors array
     rgb = rgb + greys[::-1]
@@ -200,5 +202,5 @@ for index, word in enumerate(words):
         ax[index].set_ylabel(word, fontsize='x-small', rotation='horizontal', ha='right')
 
 
-plt.savefig('./plots/stepSort-allResponses-abstract.png',bbox_inches='tight',dpi=300)
-# plt.show()
+plt.savefig('./plots/stepSort-allResponses-{}.pdf'.format(condition),
+            bbox_inches='tight',dpi=300)
