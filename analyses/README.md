@@ -35,4 +35,4 @@ logistic regression on participant match (block 2 responses only): ./experiment1
 delta E (block 2 responses only): ./experiment1/analysis3/sorted-deltaE-block2.csv <br/> 
 
 ### Figure 1
-draw_swatches.py
+figures.py
