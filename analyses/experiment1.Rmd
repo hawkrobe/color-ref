@@ -16,10 +16,10 @@ library(ggrepel)
 # Import raw data
 
 ```{r}
-d.raw = read_csv('../data/norming/dataFromMongo-all.csv') 
+d.raw = read_csv('../data/norming/dataFromMongo.csv') 
 ```
 
-Check how many people failed catch trials
+Check how many people failed out early (e.g. on catch trials)
 
 ```{r results='asis'}
 d.raw %>%
@@ -45,7 +45,21 @@ complete_games = d.raw %>%
 cat('including', length(complete_games), 'complete games')
 ```
 
+Look at RTs 
 
+```{r}
+d.raw %>%
+  filter(aID %in% complete_games) %>%
+  filter(trial_type == 'color-picker') %>%
+  # group_by(aID) %>%
+  # summarize(m = mean(rt)) %>%
+  filter(rt < 10000) %>%
+  ggplot(aes(x = log(rt))) +
+    geom_histogram() +
+    geom_vline(xintercept = 7.56)
+```
+
+Filter out 
 
 ```{r}
 d <- d.raw %>%
@@ -61,15 +75,9 @@ d %>%
 Save filtered data for Python scripts
 
 ```{r}
-words <- d %>%
-  pull(word) %>%
-  unique()
-
-colorAssociations <- d %>%
-  filter(trial_type == 'color-picker')
-
-write.csv(colorAssociations, "../data/norming/colorPickerData-0.csv", row.names = TRUE)
-  
+d %>%
+  filter(trial_type == 'color-picker') %>%
+  write_csv("../data/norming/colorPickerData.csv", row.names = TRUE)
 ```
 
 Visualize color grids
