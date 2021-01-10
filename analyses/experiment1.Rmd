@@ -16,63 +16,91 @@ library(ggrepel)
 # Import raw data
 
 ```{r}
-d.raw = read_csv('../data/norming/dataFromMongo.csv') 
+d.raw = read_csv('../data/norming/color.csv') 
 ```
 
-Check how many people failed out early (e.g. on catch trials)
-
-```{r results='asis'}
-d.raw %>%
-  group_by(aID) %>%
-  unite(trial_chunk, trial_type, condition) %>%
-  filter(trial_index == last(trial_index)) %>%
-  group_by(trial_chunk) %>%
-  tally() %>%
-  kable() %>%
-  cat(sep = '\n')
-```
-
-Only include participants who completed exactly 89 color-picker trials (all 80 words + 9 practice/catch)
+Only include participants who completed exactly 89 color-picker trials (all 80 words + 9 practice/catch trials)
 
 ```{r}
-complete_games = d.raw %>%
-  filter(trial_type == 'color-picker') %>%
-  group_by(aID) %>%
+complete_ids = d.raw %>%
+  group_by(participantID) %>%
   tally() %>%
   filter(n == 89) %>% 
-  pull(aID)
-
-cat('including', length(complete_games), 'complete games')
+  pull(participantID)
 ```
 
-Look at RTs 
+Check how many people were removed on catch trials vs. just dropped out
+
+```{r results='asis'}
+d.raw.final_trial <- d.raw %>%
+  group_by(participantID) %>%
+  filter(trial_index == last(trial_index)) %>%
+  group_by(condition) %>%
+  tally() %>%
+  spread(condition, n)
+
+cat('we lost', d.raw.final_trial$block1_catch_trial, 'on the first block catch trial,\n',
+    d.raw.final_trial$block2_catch_trial, 'on the second block catch trial,\n', 
+    d.raw.final_trial$catch_trial_color_trials, 'on the practice trial catch\n for a total of',
+    d.raw.final_trial$catch_trial_color_trials
+      + d.raw.final_trial$block1_catch_trial
+      + d.raw.final_trial$block2_catch_trial)
+```
+
+Exclude based on colorblindness & RT
 
 ```{r}
-d.raw %>%
-  filter(aID %in% complete_games) %>%
-  filter(trial_type == 'color-picker') %>%
-  # group_by(aID) %>%
-  # summarize(m = mean(rt)) %>%
-  filter(rt < 10000) %>%
-  ggplot(aes(x = log(rt))) +
-    geom_histogram() +
-    geom_vline(xintercept = 7.56)
+# plate2 => normal = ['8' => key 56], red-green = ['3' => key 51]
+# plate4 => normal = ['5' => key 53], red-green = ['2' => key 50]
+# plate5 => normal = ['3' => key 51], red-green = ['5' => key 53]
+colorblind_ids = read_csv('../data/norming/colorblindness.csv') %>%
+  filter(participantID %in% complete_ids) %>%
+  filter(case_when(stimulus == 2 ~ key_press != 56 & key_press != 51,
+                   stimulus == 4 ~ key_press != 53 & key_press != 50,
+                   stimulus == 5 ~ key_press != 51 & key_press != 53)) %>%
+  pull(participantID) %>%
+  unique()
+
+cat('removed another', colorblind_ids %>% length(), 'for colorblindness') 
+
+response_streak_ids <- d.raw %>%
+  filter(participantID %in% complete_ids) %>%
+  filter(!(participantID %in% colorblind_ids)) %>%
+  filter(condition %in% c('block1_target_trial', 'block2_target_trial')) %>%
+  group_by(participantID) %>%
+  arrange(participantID,trial_index) %>%
+  mutate(sameResponseAsPreviousTrial = lag(button_pressed) == button_pressed,
+         threeInARow = paste0(lag(sameResponseAsPreviousTrial),
+                              sameResponseAsPreviousTrial,
+                              lead(sameResponseAsPreviousTrial)) == 'TRUETRUETRUE',
+         m = mean(sameResponseAsPreviousTrial, na.rm = T)) %>%
+  filter(threeInARow) %>%
+  pull(participantID) %>%
+  unique()
+
+cat('removed another', response_streak_ids %>% length(), 'for colorblindness') 
 ```
 
-Filter out 
+Filter & check how balanced across words this leaves us
 
 ```{r}
 d <- d.raw %>%
-  filter(aID %in% complete_games)
+  filter(participantID %in% complete_ids) %>%
+  filter(!(participantID %in% colorblind_ids)) %>%
+  filter(!(participantID %in% response_streak_ids)) %>%
+  filter(rt > 1000)
 
 d %>%
-  group_by(wordSetID, aID) %>%
+  group_by(wordSetID, participantID) %>%
   tally() %>%
   group_by(wordSetID) %>%
   tally()
+
+cat('including', length(unique(d$participantID)), 'complete games out of the', 
+    length(unique(d.raw$participantID)), 'we recruited')
 ```
 
-Save filtered data for Python scripts
+Save out filtered data:
 
 ```{r}
 d %>%
