@@ -47,8 +47,8 @@ from scipy.stats import entropy
 #-------------------------------------------------------------------------------
 # LOAD DATA
 
-dfColor = pd.read_csv(r'../data/norming/colorPickerData-all.csv')
-cols = ["word", "aID", "button_pressed", "response_munsell", "response_r", "response_g", "response_b", "condition"]
+dfColor = pd.read_csv(r'../data/norming/colorPickerData.csv')
+cols = ["word", "participantID", "button_pressed", "response_munsell", "response_r", "response_g", "response_b", "condition"]
 dfColor = dfColor[cols]
 
 # Change condition to select different blocks
@@ -71,7 +71,7 @@ targetWords = list(uniqueWords-colorWords)
 def selectData(df, word, type):
     points = df[df['word'] == word]
     # sort by participant ID to get all values in the same order
-    points = points.sort_values(by=['aID'])
+    points = points.sort_values(by=['participantID'])
     return points[type].to_list()
 
 # convert RGB points to LAB, output = numpy array of LAB tuples
@@ -236,8 +236,7 @@ dfEntropy.to_csv("./experiment1/analysis1/sorted-entropy-both.csv", index=False)
 #-------------------------------------------------------------------------------
 # COMPILE ALL METRICS
 
-dfGlasgow = pd.read_excel(r'./experiment1/GlasgowNorms.xlsx')
-dfGlasgow = dfGlasgow.rename(columns={'Unnamed: 0': 'word'})
+dfGlasgow = pd.read_csv(r'../data/norming/GlasgowNorms.csv')
 cols = ['word', 'IMAG', 'CNC', 'FAM']
 dfGlasgow = dfGlasgow[cols]
 
@@ -305,12 +304,11 @@ dfIntraparticipant = pd.DataFrame()
 # iterate over words sorted by entropy
 for index, word in enumerate(sortedWords_entropy):
     # get rgb responses for each block
-    aID1, r1, g1, b1 = selectData(dfColor_block1, word, 'aID'), selectData(dfColor_block1, word, 'response_r'), selectData(dfColor_block1, word, 'response_g'), selectData(dfColor_block1, word, 'response_b')
-    aID2, r2, g2, b2 = selectData(dfColor_block2, word, 'aID'), selectData(dfColor_block2, word, 'response_r'), selectData(dfColor_block2, word, 'response_g'), selectData(dfColor_block2, word, 'response_b')
+    participantID1, r1, g1, b1 = selectData(dfColor_block1, word, 'participantID'), selectData(dfColor_block1, word, 'response_r'), selectData(dfColor_block1, word, 'response_g'), selectData(dfColor_block1, word, 'response_b')
+    participantID2, r2, g2, b2 = selectData(dfColor_block2, word, 'participantID'), selectData(dfColor_block2, word, 'response_r'), selectData(dfColor_block2, word, 'response_g'), selectData(dfColor_block2, word, 'response_b')
 
     lab1 = RGBtoLABObject(r1, g1, b1)
     lab2 = RGBtoLABObject(r2, g2, b2)
-
     # vectorize Delta E function
     vectorizedDeltaE = np.vectorize(computeDeltaE)
 
@@ -318,7 +316,7 @@ for index, word in enumerate(sortedWords_entropy):
     deltaE = vectorizedDeltaE(lab1, lab2)
     dfWords = [word] * len(deltaE)
 
-    to_append = pd.DataFrame({'word':dfWords, 'aID': aID1, 'deltaE':deltaE}, columns=['word', 'aID', 'deltaE'])
+    to_append = pd.DataFrame({'word':dfWords, 'participantID': participantID1, 'deltaE':deltaE}, columns=['word', 'participantID', 'deltaE'])
     dfIntraparticipant = dfIntraparticipant.append(to_append, ignore_index=True)
 
 print(dfIntraparticipant)
@@ -329,8 +327,8 @@ dfIntraparticipant.to_csv("./experiment1/analysis2/block1-block2-deltaE.csv", in
 #===============================================================================
 
 # LOAD ALL EXPECTATION RATING DATA
-dfExpectation = pd.read_csv(r'../data/norming/expectationData-all.csv')
-cols = ["word", "aID", "sliderResponse"]
+dfExpectation = pd.read_csv(r'../data/norming/expectations.csv')
+cols = ["word", "participantID", "sliderResponse"]
 dfExpectation = dfExpectation[cols]
 
 #-------------------------------------------------------------------------------
@@ -389,26 +387,26 @@ dfGroundTruth.to_csv("./experiment1/analysis3/ground-truth-by-condition.csv", in
 # CREATE CSV FOR EXPECTATION LOGISTIC REGRESSION
 
 dfWords = []
-aID1 = []
-aID2 = []
+participantID1 = []
+participantID2 = []
 match = []
-aID1_expectation = []
+participantID1_expectation = []
 for word_index, word in enumerate(sortedWords_entropy):
-    # get aIDs
-    aID = selectData(dfColor_block2, word, 'aID')
+    # get participantIDs
+    participantID = selectData(dfColor_block2, word, 'participantID')
 
     buttonResponse = selectData(dfColor_block2, word, 'button_pressed')
     expectation = selectData(dfExpectation, word, 'sliderResponse')
 
-    # loop over all the aIDs twice
-    for id1_index, id1 in enumerate(aID):
-        e = expectation[id1_index] # store the expectation rating for this aID1
-        for id2_index, id2 in enumerate(aID):
+    # loop over all the participantIDs twice
+    for id1_index, id1 in enumerate(participantID):
+        e = expectation[id1_index] # store the expectation rating for this participantID1
+        for id2_index, id2 in enumerate(participantID):
             if id2 != id1: # only add rows for when person1 and person2 are NOT the same
                 dfWords.append(word)
-                aID1.append(id1)
-                aID2.append(id2)
-                aID1_expectation.append(e)
+                participantID1.append(id1)
+                participantID2.append(id2)
+                participantID1_expectation.append(e)
                 # if the response for id1 is the same as id2
                 if buttonResponse[id1_index] == buttonResponse[id2_index]:
                     match.append(1) # append 1 for True
@@ -417,7 +415,7 @@ for word_index, word in enumerate(sortedWords_entropy):
 
 
 # save to dataframe
-dfRegression = pd.DataFrame({'word':dfWords, 'aID1':aID1, 'aID2':aID2, 'matchYN':match, 'aID1Expectation':aID1_expectation}, columns=['word', 'aID1', 'aID2', 'matchYN', 'aID1Expectation'])
+dfRegression = pd.DataFrame({'word':dfWords, 'participantID1':participantID1, 'participantID2':participantID2, 'matchYN':match, 'participantID1Expectation':participantID1_expectation}, columns=['word', 'participantID1', 'participantID2', 'matchYN', 'participantID1Expectation'])
 # save df as csv
 dfRegression.to_csv("./experiment1/analysis3/logistic-regression.csv", index=False)
 
