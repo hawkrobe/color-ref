@@ -33,3 +33,6 @@ slider ratings by condition: ./experiment1/analysis3/expectation-by-condition.cs
 ground truth by condition (block 2 responses only): ./experiment1/analysis3/ground-truth-by-condition.csv <br/> 
 logistic regression on participant match (block 2 responses only): ./experiment1/analysis3/logistic-regression.csv <br/> (^file too big to upload to GitHub) <br/> 
 delta E (block 2 responses only): ./experiment1/analysis3/sorted-deltaE-block2.csv <br/> 
+
+### Figure 1
+draw_swatches.py
