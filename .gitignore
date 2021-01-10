@@ -1,4 +1,5 @@
 node_modules
+*.nb.html
 dataFromMongo.csv
 bundle.js*
 .DS_Store
