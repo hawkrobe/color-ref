@@ -12,8 +12,8 @@ library(tidyboot)
 library(here)
 library(spacesXYZ)
 
-d.raw <- read_csv(here('data/ref-game/dataFromMongo.csv'),
-              col_types = 'ccnccccccnccnncnnnncncccncccl')
+d.raw.colors <- read_csv(here('data/ref-game/colors.csv'))
+d.raw.clicks <- read_csv(here('data/ref-game/clicks.csv'))
 ```
 
 ## Implement exclusion criterion
@@ -21,7 +21,7 @@ d.raw <- read_csv(here('data/ref-game/dataFromMongo.csv'),
 Remove games that disconnected partway through
 
 ```{r}
-completeIDs <- d.raw %>%
+completeIDs <- d.raw.clicks %>%
   filter(!is.na(correct)) %>%
   group_by(gameId) %>%
   tally() %>%
@@ -43,7 +43,7 @@ valid_responses_red = c(0, 9, 11, 12, 20, 22, 23, 30, 31, 33, 34, 42, 44, 45,
                         52, 53, 55, 56, 64, 66, 67, 74, 75, 77, 78, 85, 86)
 valid_responses_blue = c(4, 5, 6, 15, 16, 17, 18, 26, 27, 28, 29, 37, 38, 39, 
                          40, 48, 49, 50, 51, 59, 60, 61, 62, 70, 71, 72, 73, 81, 82, 83, 84)
-passedCatchIDs <- d.raw %>%
+passedCatchIDs <- d.raw.colors %>%
   filter(gameId %in% completeIDs) %>%
   filter(condition == 'catch') %>%
   mutate(valid = ifelse(target == 'blue', button_pressed %in% valid_responses_blue, 
@@ -60,9 +60,12 @@ cat(length(passedCatchIDs), '/', length(completeIDs), 'complete games had both p
 Look at overall RT distribution (some on the low end...)
 
 ```{r}
-d.raw %>%
-  filter(gameId %in% passedCatchIDs) %>%
+
+d.raw.colors %>% 
+  mutate(dataType = 'colors') %>% 
   filter(phase == 'refGame') %>%
+  bind_rows(d.raw.clicks %>% mutate(dataType = 'clicks')) %>%
+  filter(gameId %in% passedCatchIDs) %>%
   ggplot(aes(x = log(rt))) +
     geom_histogram() +
     facet_grid(dataType ~. )
@@ -70,10 +73,13 @@ d.raw %>%
 Look at participant-level rt distribution for any outliers that consistently responded much quicker/slower than others.
 
 ```{r}
-d.raw %>%
+d.raw.colors %>% 
+  mutate(dataType = 'colors') %>% 
+  filter(phase == 'refGame') %>%
+  bind_rows(d.raw.clicks %>% mutate(dataType = 'clicks')) %>%
   filter(gameId %in% passedCatchIDs) %>%
   filter(phase == 'refGame') %>%
-  group_by(playerId, dataType) %>%
+  group_by(participantID, dataType) %>%
   summarize(rt = mean(log(rt))) %>%
   ggplot(aes(x = rt)) +
     geom_histogram() +
@@ -87,10 +93,8 @@ d.raw %>%
 We start using entropy of population distribution of associations measured from earlier participants as a predictor of communicative success
 
 ```{r}
-clicks <- d %>%
-  filter(dataType == 'clickedWord') %>%
+clicks <- d.raw.clicks %>%
   filter(gameId %in% passedCatchIDs) %>%
-  select(which(colMeans(is.na(.)) < 0.5)) %>%
   separate(context_id, into = c('condition', 'context_id')) 
 ```
 
@@ -194,20 +198,18 @@ Extract response similarity on pre-test
 
 ```{r}
 # convert to LAB
-colors <- d %>%
-  filter(dataType == 'sentColor') %>%
+colors <- d.raw.colors %>%
   filter(gameId %in% passedCatchIDs) %>%
-  select(which(colMeans(is.na(.)) < 0.5)) %>%
   do(cbind(., data.frame(convertColor(matrix(c(.$response_r, .$response_g, .$response_b), ncol = 3)/255, 
                           from = 'sRGB', to = 'Lab'))))
 
 # compute DeltaE
 pre_test_dists <- colors %>%
   filter(phase == 'pre', set == 'test') %>%
-  select(gameId, playerId, target, L, a, b) %>%
+  select(gameId, participantID, target, L, a, b) %>%
   group_by(gameId, target) %>%
-  mutate(playerId =  row_number()) %>%
-  pivot_wider(names_from = playerId, 
+  mutate(participantID =  row_number()) %>%
+  pivot_wider(names_from = participantID, 
               values_from = c(L, a, b)) %>%
   mutate(prior_dist = spacesXYZ::DeltaE(matrix(c(L_1, a_1, b_1), ncol = 3), 
                                         matrix(c(L_2, a_2, b_2), ncol = 3), 
@@ -269,10 +271,10 @@ clicks %>%
 ```{r}
 pre_post_dists <- colors %>%
   filter(phase != 'refGame') %>%
-  select(gameId, playerId, set, condition, phase, target, L, a, b) %>%
+  select(gameId, participantID, set, condition, phase, target, L, a, b) %>%
   group_by(gameId, target, phase, set, condition) %>%
-  mutate(playerId =  row_number()) %>%
-  pivot_wider(names_from = playerId, 
+  mutate(participantID =  row_number()) %>%
+  pivot_wider(names_from = participantID, 
               values_from = c(L, a, b)) %>%
   mutate(prior_dist = spacesXYZ::DeltaE(matrix(c(L_1, a_1, b_1), ncol = 3), 
                                         matrix(c(L_2, a_2, b_2), ncol = 3), 
@@ -289,10 +291,14 @@ pre_post_dists %>%
              color = condition, linetype = set, 
              group = interaction(set, condition))) +
     geom_line() +
+    geom_hline(yintercept = 0) +
     geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0) +
     labs(y = 'euclidean distance between partner associations', x = '') +
     ylim(0, 50) +
-    theme_few()
+    theme_few() +
+    theme(aspect.ratio = 1)
+
+ggsave('./experiment2/pre-post.pdf', height = 4, width = 4, units = 'in')
 ```
 
 Stats for pre-post design...
