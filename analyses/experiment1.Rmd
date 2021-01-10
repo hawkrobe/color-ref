@@ -90,14 +90,14 @@ d %>%
   do(ggsave(.$word, device = 'png', plot = show_col(.$hex, labels = F)))
 ```
 
-# Analysis 3: Compare expectations with ground truth metrics
+# Analysis 1: Compare expectations with ground truth metrics
 
 ## Examine relationship between variance and entropy
 
 ```{r}
-d = read_csv('../data/norming/compiled-variance-entropy-glasgowRatings.csv') 
+dCompiled = read_csv('./experiment1/analysis1/compiled-variabilityMeasures-glasgowRatings.csv') 
 
-filteredData = d %>%
+filteredData = dCompiled %>%
   filter(imageability != 'N/A') %>%
   mutate(imageability = as.numeric(imageability),
          concreteness = as.numeric(concreteness))
@@ -199,7 +199,7 @@ barplot(ordered$entropy, main="Entropy", xlab="words")
 # Analysis 2: Intra-participant variability
 
 ```{r}
-dIntraparticipant = read_csv('./intra-participant/block1-block2-deltaE.csv') 
+dIntraparticipant = read_csv('./experiment1/analysis2/block1-block2-deltaE.csv') 
 ```
 
 ## Plot DeltaE for 5 lowest entropy words individually
@@ -250,8 +250,8 @@ ggsave("./plots/average-block1-block2-deltaE.png", dpi=300, width=10, height=4)
 
 ## Compare expectation (average slider response) to actual percent agreement
 ```{r}
-dExpectation = read_csv('./expectation/expectations-by-condition.csv') 
-dTruth = read_csv('./expectation/ground-truth-by-condition.csv') 
+dExpectation = read_csv('./experiment1/analysis3/expectation-by-condition.csv') 
+dTruth = read_csv('./experiment1/analysis3/ground-truth-by-condition.csv') 
 
 # Z score averages of expectation rating and actual percent matches (across participants) and compare
 expectation <- aggregate(dExpectation[, 2], list(dExpectation$word), mean) %>% 
@@ -267,11 +267,10 @@ scatter.smooth(x=expectation$zscore, y=truth$zscore, xlab="Average expecation ra
 ## Compare expectation (average slider response) to entropy
 ```{r}
 # load and format entropy data
-dEntropy = read_csv('./entropy/sorted-entropies-all-both.csv')
+dEntropy = read_csv('./experiment1/analysis1/sorted-entropy-both.csv')
 
 entropy <- dEntropy[order(dEntropy$word),] %>%
-  mutate(both = as.numeric(both)) %>%
-  rename(entropy = both) %>%
+  mutate(entropy = as.numeric(entropy)) %>%
   mutate(zscore = (entropy - mean(entropy))/sd(entropy))
   
 scatter.smooth(x=expectation$zscore, y=entropy$entropy, xlab = "Entropy of participants' color associations for all words", ylab = "Average % of population expected to share one's color association")
@@ -282,7 +281,7 @@ cor.test(expectation$zscore, entropy$zscore)
 
 ## Compare expectation (average slider response) to DeltaE among participants' block 2 responses
 ```{r}
-dDeltaE = read_csv('./deltaE/sorted-deltaE-CIE2000-block2.csv') 
+dDeltaE = read_csv('./experiment1/analysis3/sorted-deltaE-block2.csv') 
 
 # zscoring:
 deltaE <- dDeltaE[order(dDeltaE$word),] %>%
@@ -348,12 +347,12 @@ ggplot(both, aes(x=word, y=value, fill=condition)) +
 ```
 ## Logistic regression
 ```{r}
+# takes a second to run
 require(lme4)
-dLogistic = read_csv('./expectation/logistic-regression.csv') 
+dLogistic = read_csv('./experiment1/analysis3/logistic-regression.csv') 
 
 m <- glmer(matchYN ~ aID1Expectation + (1 | aID1), data = dLogistic)
 # print the mod results without correlations among fixed effects
 print(m)
-
 ```
 
