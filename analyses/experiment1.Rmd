@@ -62,10 +62,27 @@ colorblind_ids = read_csv('../data/norming/colorblindness.csv') %>%
   unique()
 
 cat('removed another', colorblind_ids %>% length(), 'for colorblindness') 
+```
+
+```{r}
+low_rt_ids <- d.raw %>%
+  filter(participantID %in% complete_ids) %>%
+  filter(!(participantID %in% colorblind_ids)) %>%
+  filter(condition %in% c('block1_target_trial', 'block2_target_trial')) %>%
+  group_by(participantID) %>%
+  arrange(participantID,trial_index) %>%
+  mutate(low_rt = rt < 1000) %>%
+  summarize(m = mean(low_rt)) %>%
+  filter(m > 0.25) %>%
+  pull(participantID) %>%
+  unique()
+
+cat('removed another', low_rt_ids %>% length(), 'for consistently <1s rts') 
 
 response_streak_ids <- d.raw %>%
   filter(participantID %in% complete_ids) %>%
   filter(!(participantID %in% colorblind_ids)) %>%
+  filter(!(participantID %in% low_rt_ids)) %>%
   filter(condition %in% c('block1_target_trial', 'block2_target_trial')) %>%
   group_by(participantID) %>%
   arrange(participantID,trial_index) %>%
@@ -78,7 +95,8 @@ response_streak_ids <- d.raw %>%
   pull(participantID) %>%
   unique()
 
-cat('removed another', response_streak_ids %>% length(), 'for colorblindness') 
+cat('removed another', response_streak_ids %>% length(), 
+    'for same response more than 3 in a row') 
 ```
 
 Filter & check how balanced across words this leaves us
@@ -88,7 +106,7 @@ d <- d.raw %>%
   filter(participantID %in% complete_ids) %>%
   filter(!(participantID %in% colorblind_ids)) %>%
   filter(!(participantID %in% response_streak_ids)) %>%
-  filter(rt > 1000)
+  filter(!(participantID %in% low_rt_ids))
 
 d %>%
   group_by(wordSetID, participantID) %>%
@@ -103,180 +121,192 @@ cat('including', length(unique(d$participantID)), 'complete games out of the',
 Save out filtered data:
 
 ```{r}
-d %>%
-  filter(trial_type == 'color-picker') %>%
-  write_csv("../data/norming/colorPickerData.csv", row.names = TRUE)
+write_csv(d, "../data/norming/colorPickerData.csv")
 ```
-
-Visualize color grids
 
 ```{r}
-d %>%
-  filter(trial_type == 'color-picker') %>%
-  mutate(hex = rgb(response_r/255, response_g/255, response_b/255)) %>%
-  group_by(word) %>%
-  do(ggsave(.$word, device = 'png', plot = show_col(.$hex, labels = F)))
+# Attempt to run python scripts
+library(reticulate)
+use_python("/Users/roberthawkins/miniconda3/bin/python3", required = T)
+use_condaenv(condaenv = 'base')
+py_run_file("experiment1.py")
 ```
 
-# Analysis 1: Compare expectations with ground truth metrics
+# Analysis 1: To what extent does concretentess/imageability predict variability
+
+## Reproduced analysis
+
+```{r}
+colors <- d %>%
+  cbind(c(.$response_r/255, .$response_g/255, .$response_b/255) %>%
+        matrix(ncol = 3) %>%
+        convertColor(from = 'sRGB', to = 'Lab') %>%
+        data.frame()) %>%
+  filter(condition %in% c('block1_target_trial', 'block2_target_trial')) %>%
+  select(participantID, condition, word, L, a, b)
+
+# get imageability and concreteness
+glasgow <- read_csv('../data/norming/GlasgowNorms.csv') %>%
+  mutate(word = case_when(word == 'bunk (bed)' ~ 'bunkbed',
+                          word == 'absurd' ~ 'absurdity',
+                          word == 'defiant' ~ 'defiance',
+                          word == 'admire' ~ 'admiration',
+                          word == 'adore' ~ 'adoration',
+                          word == 'clear' ~ 'clarity',
+                          word == 'complex' ~ 'complexity',
+                          word == 'crazy' ~ 'craziness',
+                          word == 'diverse' ~ 'diversity',
+                          word == 'divine' ~ 'divinity',
+                          word == 'elegant' ~ 'elegance',
+                          word == 'friendly' ~ 'friendliness',
+                          word == 'inflame' ~ 'inflamation',
+                          word == 'modest' ~ 'modesty',
+                          word == 'mystery' ~ 'mysterious',
+                          word == 'obvious' ~ 'obviousness',
+                          word == 'odd' ~ 'oddity',
+                          word == 'peculiar' ~ 'peculiarity',
+                          word == 'playful' ~ 'playfulness',
+                          word == 'positive' ~ 'positivity',
+                          word == 'random' ~ 'randomness',
+                          word == 'real' ~ 'reality',
+                          word == 'reassure' ~ 'reassurance',
+                          word == 'relieved' ~ 'relief',
+                          word == 'shy' ~ 'shyness',
+                          word == 'thoughtless' ~ 'thoughtlessness',
+                          word == 'vague' ~ 'vagueness',
+                          word == 'vicious' ~ 'viciousness',
+                          word == 'weary' ~ 'weariness',
+                          TRUE ~ word)) %>%
+  select(word, CNC, IMAG) %>%
+  rename(concreteness = CNC,
+         imageability = IMAG)
+
+# get entropies
+entropies <- d %>%
+  filter(condition %in% c('block1_target_trial', 'block2_target_trial')) %>%
+  group_by(word, button_pressed) %>%
+  tally() %>%
+  ungroup() %>%
+  complete(button_pressed, word, fill = list(n = 0)) %>%
+  group_by(word) %>%
+  summarize(entropy = entropy::entropy(n, method = 'SG', unit="log2"))
+  
+# get pairwise distances
+deltae <- colors %>%
+  left_join(colors, by = c('word')) %>%
+  filter(participantID.x != participantID.y) %>%
+  mutate(prior_dist = spacesXYZ::DeltaE(matrix(c(L.x, a.x, b.x), ncol = 3), 
+                                        matrix(c(L.y, a.y, b.y), ncol = 3), 
+                                        metric = '2000')) %>%
+  group_by(word) %>%
+  summarize(prior_dist = mean(prior_dist))
+```
 
 ## Examine relationship between variance and entropy
 
 ```{r}
-dCompiled = read_csv('./experiment1/analysis1/compiled-variabilityMeasures-glasgowRatings.csv') 
-
-filteredData = dCompiled %>%
+dCompiled_python = read_csv('./experiment1/analysis1/compiled-variabilityMeasures-glasgowRatings.csv') %>%
   filter(imageability != 'N/A') %>%
   mutate(imageability = as.numeric(imageability),
-         concreteness = as.numeric(concreteness))
+       concreteness = as.numeric(concreteness))
+
+dCompiled <- entropies %>%
+  left_join(deltae) %>%
+  left_join(glasgow) %>%
+  filter(!is.na(imageability))
 ```
 
-## Visualize metrics
+## Visualize relationships between metrics / test correlations
+
 ```{r}
-scatter.smooth(x=filteredData$variance, y=filteredData$imageability)
-scatter.smooth(x=filteredData$variance, y=filteredData$concreteness)
-scatter.smooth(x=filteredData$entropy, y=filteredData$imageability)
-scatter.smooth(x=filteredData$entropy, y=filteredData$concreteness)
+dCompiled %>% 
+  select(-word) %>%
+  GGally::ggpairs(lower = list(continuous = "smooth"), progress = F) + 
+  ggthemes::theme_few()
 ```
 
-## Examine relationship between DVs
+## Compare regression models 
+
+Some evidence for concreteness as non-redundant with imagability
 
 ```{r}
-cor(filteredData$entropy, filteredData$variance, method = 'spearman')
-cor(filteredData$entropy, filteredData$concreteness, method = 'spearman')
-cor(filteredData$entropy, filteredData$imageability, method = 'spearman')
-```
-
-## Build and diagnose linear model for IMAGEABILITY
-
-```{r}
-# correlation
-cat('variance-imageability correlation = ', cor(filteredData$variance, filteredData$imageability))
-cor.test(filteredData$variance, filteredData$imageability)
-
-# get summary stats
-linearModIMAG <- lm(log(variance) ~ imageability, data=filteredData) # imageability as a function of variance
-imagSummary <- summary(linearModIMAG) # capture model summary as an object
-print(imagSummary)
-
-# calculate summary stats for practice
-imagCoeffs <- imagSummary$coefficients # model coefficients
-beta.estimate <- imagCoeffs["variance", "Estimate"]  # get beta estimate for variance
-std.error <- imagCoeffs["variance", "Std. Error"]  # get std.error for variance
-
-t_value_imag <- beta.estimate/std.error  # calc t statistic
-# larger t-value indicates that it is less likely that the coefficient is not equal to zero purely by chance
-
-p_value_imag <- 2*pt(-abs(t_value), df=nrow(filteredData)-ncol(filteredData))  # calc p Value
-# when p Value is less than significance level (< 0.05), we can safely reject the null hypothesis that the co-efficient β of the predictor is zero
-
-f_statistic <- linearModIMAG$fstatistic[1]  # fstatistic
-f <- summary(linearModIMAG)$fstatistic  # parameters for model p-value calc
-model_p <- pf(f[1], f[2], f[3], lower=FALSE)
-```
-
-## Build and diagnose linear model for CONCRETENESS
-```{r}
-# correlation
-cat('entropy-concreteness correlation = ', cor(filteredData$entropy, filteredData$concreteness))
-cat('concreteness-imagability correlation = ', cor(filteredData$imageability, filteredData$concreteness))
-cor.test(filteredData$entropy, filteredData$concreteness)
-
-# get summary stats
-# concreteness as a function of variance
-linearModImg <- filteredData %>%
-  lm(log(entropy) ~ imageability,
+linearModImg <- dCompiled %>%
+  lm(entropy ~ imageability,
      data = .)
 
-linearModConcrete <- filteredData %>%
-  lm(log(entropy) ~ concreteness, 
-     data=.) 
-
-linearModBoth <- filteredData %>%
-  lm(log(entropy) ~ imageability + concreteness,
+linearModBoth <- dCompiled %>%
+  lm(entropy ~ imageability + concreteness,
      data=.) 
 
 anova(linearModImg, linearModBoth)
-anova(linearModConcrete, linearModBoth)
-cncSummary <- summary(linearModBoth)
-print(cncSummary)
 ```
 
-```{r}
-linearMod <- lm(variance ~ imageability + concreteness, data=filteredData)
-print(summary(linearMod))
-
-linearMod <- lm(entropy ~ imageability + concreteness, data=filteredData)
-print(summary(linearMod))
-```
-
-## Attempt at mixed effects model
-http://www.bodowinter.com/uploads/1/2/9/3/129362560/bw_lme_tutorial2.pdf
-```{r}
-library(lme4)
-
-mixedModel <- lmer(imageability ~ variance + (1|word), data=filteredData, control=lmerControl(check.nobs.vs.nlev = "ignore", check.nobs.vs.rankZ = "ignore", check.nobs.vs.nRE="ignore"))
-summary(mixedModel)
-```
+But only when predicting entropy, not delta-e
 
 ```{r}
-ordered <- filteredData[order( filteredData[,3] ),]
-barplot(ordered$entropy, main="Entropy", xlab="words")
+linearMod <- lm(prior_dist ~ imageability + concreteness, data=dCompiled)
+summary(linearMod)
+
+linearMod <- lm(entropy ~ imageability + concreteness, data=dCompiled)
+summary(linearMod)
 ```
 
 # Analysis 2: Intra-participant variability
 
 ```{r}
-dIntraparticipant = read_csv('./experiment1/analysis2/block1-block2-deltaE.csv') 
+dIntraparticipant_python = read_csv('./experiment1/analysis2/block1-block2-deltaE.csv') 
+
+dIntraparticipant <- colors %>%
+  separate(condition, into = c('block', 'trialtype')) %>%
+  filter(block %in% c('block1', 'block2'), trialtype == 'target') %>%
+  group_by(participantID, word) %>%
+  pivot_wider(names_from = block, values_from = c('L', 'a', 'b')) %>%
+  mutate(block1_block2_dist = spacesXYZ::DeltaE(matrix(c(L_block1, a_block1, b_block1), ncol = 3), 
+                                        matrix(c(L_block2, a_block2, b_block2), ncol = 3), 
+                                        metric = '2000')) 
 ```
 
-## Plot DeltaE for 5 lowest entropy words individually
+## Plot DeltaE for all words
+
 ```{r}
-selectedWords <- filter(dIntraparticipant, word %in% c('lemon', 'sun', 'tomato', 'fire', 'apple', 'spinach', 'vegetable', 'tree', 'daffodil', 'bone'))
-
-selectedWords %>%
-  ggplot(aes(x = word, y = deltaE)) + 
-  geom_violin() +
-  geom_boxplot(width = 0.1) +
-  labs(y="Delta E (CIE2000)", x = "Word") +
-  ggtitle("Delta E between individual participants' block1 and block2 color response")
+dIntraparticipant %>%
+  mutate(word = factor(word)) %>%
+  ggplot(aes(x = fct_reorder(word, block1_block2_dist), y = block1_block2_dist)) + 
+    geom_boxplot(width = 1) +
+    labs(y="Delta E (CIE2000)", x = "Word") + 
+    guides(x = guide_axis(n.dodge = 1, angle = 90, check.overlap = T)) +
+    ggtitle("Delta E between individual participants' block1 and block2 color response") +
+    ggthemes::theme_few() +
+    theme(aspect.ratio = 1/5) 
 ```
-# Plot DeltaE for 5 highest entropy words individually
-```{r}
-selectedWords <- filter(dIntraparticipant, word %in% c('noun', 'misconception', 'peculiarity', 'tendency', 'obligation', 'randomness', 'oddity', 'complexity', 'responsibility', 'absurdity'))
 
-selectedWords %>%
-  ggplot(aes(x = word, y = deltaE)) + 
-  geom_violin() +
-  geom_boxplot(width = 0.1) +
-  labs(y="Delta E (CIE2000)", x = "Word") +
-  ggtitle("Delta E between individual participants' block1 and block2 color response")
-```
 # Average block1-block2 deltaE's for each word and plot
+
 ```{r}
-averageDeltaE <- aggregate(dIntraparticipant[, 3], list(dIntraparticipant$word), mean) %>%
-  rename(word = Group.1)
+dIntraparticipant %>%
+  group_by(word) %>%
+  tidyboot::tidyboot_mean(block1_block2_dist, nboot = 100) %>%
+  left_join(deltae) %>%
+  ggplot(aes(x = prior_dist, y = empirical_stat))+
+  geom_point() + 
+  geom_abline(slope = 1, intercept = 0, linetype = 'dotted') +
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0) +
+  geom_smooth(method = 'lm', formula = y ~ poly(x,1), color = 'black') +
+  labs(x="Average delta E between different participants", 
+       y= "Average delta E within participant") +
+  xlim(0, 43) +
+  ylim(0, 43) +
+  ggthemes::theme_few() +
+  theme(aspect.ratio = 1)
 
-every_nth = function(n) {
-  return(function(x) {x[c(TRUE, rep(FALSE, n - 1))]})
-}
-  
-averageDeltaE %>%
-  ggplot(aes(reorder(word, deltaE), deltaE))+
-  geom_col() + 
-  labs(x="Word", y= "Delta E (CIE2000)", title="Average Delta E between participants' block1 and block2 response") +
-  theme(axis.text.x = element_text(size = 4, angle = 90), axis.title=element_text(size=8)) +
-  theme(aspect.ratio=1/5) + 
-  scale_x_discrete(breaks = every_nth(n = 2))
-
-ggsave("./plots/average-block1-block2-deltaE.png", dpi=300, width=10, height=4)
-
+ggsave("./experiment1/figures/block1-block2-deltaE.pdf", width=4, height=3)
 ```
 
 
 # Analysis 3: Compare expectations with ground truth metrics
 
 ## Compare expectation (average slider response) to actual percent agreement
+
 ```{r}
 dExpectation = read_csv('./experiment1/analysis3/expectation-by-condition.csv') 
 dTruth = read_csv('./experiment1/analysis3/ground-truth-by-condition.csv') 
@@ -292,7 +322,9 @@ truth <-  aggregate(dTruth[, 2], list(dTruth$word), mean) %>%
 # plot word level responses (averaged over participants + z-scored)
 scatter.smooth(x=expectation$zscore, y=truth$zscore, xlab="Average expecation rating", ylab="Average percent agreement", main="Expected agreement vs. actual agreement")
 ```
+
 ## Compare expectation (average slider response) to entropy
+
 ```{r}
 # load and format entropy data
 dEntropy = read_csv('./experiment1/analysis1/sorted-entropy-both.csv')
@@ -384,3 +416,22 @@ m <- glmer(matchYN ~ aID1Expectation + (1 | aID1), data = dLogistic)
 print(m)
 ```
 
+
+# Supplemental
+
+Visualize color grids
+
+```{r}
+d %>%
+  mutate(hex = rgb(response_r/255, response_g/255, response_b/255)) %>%
+  group_by(word) %>%
+  do(ggsave(filename = paste0('color_grids/', .$word, '.png'), device = 'png', 
+            plot = show_col(.$hex, labels = F)))
+```
+
+Visualize entropies
+
+```{r}
+ordered <- dCompiled[order( dCompiled$entropy ),]
+barplot(ordered$entropy, main="Entropy", xlab="words")
+```
