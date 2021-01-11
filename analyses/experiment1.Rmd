@@ -13,7 +13,7 @@ library(xtable)
 library(ggrepel)
 ```
 
-# Import raw data
+# Import raw data & implement exclusion criteria
 
 ```{r}
 d.raw = read_csv('../data/norming/color.csv') 
@@ -118,18 +118,18 @@ cat('including', length(unique(d$participantID)), 'complete games out of the',
     length(unique(d.raw$participantID)), 'we recruited')
 ```
 
-Save out filtered data:
+Save out cleaned data for python scripts:
 
 ```{r}
 write_csv(d, "../data/norming/colorPickerData.csv")
 ```
 
 ```{r}
-# Attempt to run python scripts
-library(reticulate)
-use_python("/Users/roberthawkins/miniconda3/bin/python3", required = T)
-use_condaenv(condaenv = 'base')
-py_run_file("experiment1.py")
+# Uncomment to re-run python script; change path to your python binary / conda environment
+# library(reticulate)
+# use_python("/Users/roberthawkins/miniconda3/bin/python3", required = T)
+# use_condaenv(condaenv = 'base')
+# py_run_file("experiment1.py")
 ```
 
 # Analysis 1: To what extent does concretentess/imageability predict variability
@@ -216,7 +216,7 @@ dCompiled <- entropies %>%
   filter(!is.na(imageability))
 ```
 
-## Visualize relationships between metrics / test correlations
+### Visualize relationships between metrics / test correlations
 
 ```{r}
 dCompiled %>% 
@@ -225,7 +225,7 @@ dCompiled %>%
   ggthemes::theme_few()
 ```
 
-## Compare regression models 
+### Compare regression models 
 
 Some evidence for concreteness as non-redundant with imagability
 
@@ -251,7 +251,7 @@ linearMod <- lm(entropy ~ imageability + concreteness, data=dCompiled)
 summary(linearMod)
 ```
 
-# Analysis 2: Intra-participant variability
+## Analysis 2: Intra-participant variability
 
 ```{r}
 dIntraparticipant_python = read_csv('./experiment1/analysis2/block1-block2-deltaE.csv') 
@@ -266,20 +266,6 @@ dIntraparticipant <- colors %>%
                                         metric = '2000')) 
 ```
 
-## Plot DeltaE for all words
-
-```{r}
-dIntraparticipant %>%
-  mutate(word = factor(word)) %>%
-  ggplot(aes(x = fct_reorder(word, block1_block2_dist), y = block1_block2_dist)) + 
-    geom_boxplot(width = 1) +
-    labs(y="Delta E (CIE2000)", x = "Word") + 
-    guides(x = guide_axis(n.dodge = 1, angle = 90, check.overlap = T)) +
-    ggtitle("Delta E between individual participants' block1 and block2 color response") +
-    ggthemes::theme_few() +
-    theme(aspect.ratio = 1/5) 
-```
-
 # Average block1-block2 deltaE's for each word and plot
 
 ```{r}
@@ -290,8 +276,8 @@ dIntraparticipant %>%
   ggplot(aes(x = prior_dist, y = empirical_stat))+
   geom_point() + 
   geom_abline(slope = 1, intercept = 0, linetype = 'dotted') +
-  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0) +
-  geom_smooth(method = 'lm', formula = y ~ poly(x,1), color = 'black') +
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0, alpha = 0.25) +
+  geom_smooth(method = 'lm', formula = y ~ poly(x,1), color = 'red') +
   labs(x="Average delta E between different participants", 
        y= "Average delta E within participant") +
   xlim(0, 43) +
@@ -302,25 +288,38 @@ dIntraparticipant %>%
 ggsave("./experiment1/figures/block1-block2-deltaE.pdf", width=4, height=3)
 ```
 
-
 # Analysis 3: Compare expectations with ground truth metrics
 
 ## Compare expectation (average slider response) to actual percent agreement
 
 ```{r}
-dExpectation = read_csv('./experiment1/analysis3/expectation-by-condition.csv') 
-dTruth = read_csv('./experiment1/analysis3/ground-truth-by-condition.csv') 
+# Z score averages of expectation rating and actual percent matches (across participants) 
+dLogistic = read_csv('./experiment1/analysis3/logistic-regression.csv')
+dLogistic %>% 
+  filter(participantID1 %in% d$participantID) %>%
+  # Collapse to % match for each participant-word pair
+  group_by(word, participantID1) %>%
+  summarize(sliderResponse = mean(participantID1Expectation),
+            groundTruth = mean(matchYN)) %>%
+  # z-score slider responses within participant (i.e. expectation for this word relative to others)
+  group_by(participantID1) %>%
+  mutate(sliderResponse = scale(sliderResponse)) %>%
+  gather(metric, value, sliderResponse:groundTruth) %>%
+  group_by(word, metric) %>%
+  # bootstrap error bars
+  tidyboot::tidyboot_mean(value, nboot = 100) %>%
+  select(-mean, -n) %>%
+  pivot_wider( names_from = metric, values_from = c('empirical_stat', 'ci_lower', 'ci_upper')) %>%
+  ggplot(aes(x = empirical_stat_sliderResponse, y = log(empirical_stat_groundTruth))) +
+    geom_point() +
+    geom_errorbarh(aes(xmax = ci_upper_sliderResponse, xmin = ci_lower_sliderResponse), alpha = 0.25) +
+    geom_errorbar(aes(ymax = log(ci_upper_groundTruth), ymin = log(ci_lower_groundTruth)), alpha = 0.25) +
+    geom_smooth(method = 'lm', formula = y ~ poly(x, 1), color = 'red') +
+    labs(x = 'expectation', y = 'log P(agreement)') +
+    ggthemes::theme_few() +
+    theme(aspect.ratio = 1)
 
-# Z score averages of expectation rating and actual percent matches (across participants) and compare
-expectation <- aggregate(dExpectation[, 2], list(dExpectation$word), mean) %>% 
-  mutate(zscore = (sliderResponse - mean(sliderResponse))/sd(sliderResponse)) %>%
-  rename(word = "Group.1", avgExpectation = sliderResponse)
-
-truth <-  aggregate(dTruth[, 2], list(dTruth$word), mean) %>% 
-  mutate(zscore = (groundTruth - mean(groundTruth))/sd(groundTruth))
-
-# plot word level responses (averaged over participants + z-scored)
-scatter.smooth(x=expectation$zscore, y=truth$zscore, xlab="Average expecation rating", ylab="Average percent agreement", main="Expected agreement vs. actual agreement")
+ggsave('./experiment1/figures/expectations.pdf', height = 3, width = 4, units = 'in')
 ```
 
 ## Compare expectation (average slider response) to entropy
@@ -340,6 +339,7 @@ cor.test(expectation$zscore, entropy$zscore)
 ```
 
 ## Compare expectation (average slider response) to DeltaE among participants' block 2 responses
+
 ```{r}
 dDeltaE = read_csv('./experiment1/analysis3/sorted-deltaE-block2.csv') 
 
@@ -409,7 +409,6 @@ ggplot(both, aes(x=word, y=value, fill=condition)) +
 ```{r}
 # takes a second to run
 require(lme4)
-dLogistic = read_csv('./experiment1/analysis3/logistic-regression.csv') 
 
 m <- glmer(matchYN ~ aID1Expectation + (1 | aID1), data = dLogistic)
 # print the mod results without correlations among fixed effects
@@ -434,4 +433,18 @@ Visualize entropies
 ```{r}
 ordered <- dCompiled[order( dCompiled$entropy ),]
 barplot(ordered$entropy, main="Entropy", xlab="words")
+```
+
+Plot DeltaE for all words
+
+```{r}
+dIntraparticipant %>%
+  mutate(word = factor(word)) %>%
+  ggplot(aes(x = fct_reorder(word, block1_block2_dist), y = block1_block2_dist)) + 
+    geom_boxplot(width = 1) +
+    labs(y="Delta E (CIE2000)", x = "Word") + 
+    guides(x = guide_axis(n.dodge = 1, angle = 90, check.overlap = T)) +
+    ggtitle("Delta E between individual participants' block1 and block2 color response") +
+    ggthemes::theme_few() +
+    theme(aspect.ratio = 1/5) 
 ```
