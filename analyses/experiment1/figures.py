@@ -19,7 +19,7 @@ from colormath.color_objects import LabColor, LCHabColor, SpectralColor, sRGBCol
 #===============================================================================
 
 # LOAD ALL COLOR PICKER DATA
-df = pd.read_csv(r'../data/norming/colorPickerData-all.csv')
+df = pd.read_csv(r'../data/norming/color.csv')
 # select columns for word and RGB color response
 cols = ["word", "button_pressed", "response_munsell", "response_r", "response_g", "response_b", "condition"]
 df = df[cols]
@@ -59,12 +59,12 @@ def stepSort(r,g,b, repetitions=1):
 
 def plotSwatches(words, condition):
     width= 15
-    height= 10
+    height= 7
     numChoices = 88
     rgbVals = []
     munsellVals = []
 
-    fig, ax = plt.subplots(len(words), 1, figsize=(width,height))
+    fig, ax = plt.subplots(len(words), 1, figsize=(width,height), frameon=False)
 
     #--------------------------------------------
     # read json file with all munsell/rgb values for each button response
@@ -132,7 +132,6 @@ def plotSwatches(words, condition):
 
         #--------------------------------------------
         # make plots
-
         x = 0
         y = 0
         w = 0.005
@@ -147,7 +146,7 @@ def plotSwatches(words, condition):
             # if this index in possible choices has a percentage value associated with it
             # add a patch for this color proportional to it's percentage response
             if width != 0:
-                ax[index].add_patch(patches.Rectangle(pos, w, h, color=rgb[c]))
+                ax[index].add_patch(patches.Rectangle(pos, w, h, color=rgb[c], linewidth=0))
                 # increment to next color in rgb array
                 c += 1
 
@@ -156,11 +155,10 @@ def plotSwatches(words, condition):
 
             ax[index].get_xaxis().set_ticks([])
             ax[index].get_yaxis().set_ticks([])
-            ax[index].set_ylabel(word, fontsize='x-small', rotation='horizontal', ha='right')
+            ax[index].set_ylabel(word, fontsize='medium', rotation='horizontal', ha='right')
 
-
-    plt.savefig('./experiment1/figures/stepSort-allResponses-%s.png' % condition,bbox_inches='tight',dpi=300)
-    # plt.show()
+    plt.savefig('./experiment1/figures/stepSort-allResponses-%s.pdf' % condition,bbox_inches='tight',dpi=300)
+    plt.show()
 
 #-------------------------------------------------------------------------------
 # CALL WITH BOTH WORD SETS
