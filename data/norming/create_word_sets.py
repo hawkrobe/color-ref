@@ -5,8 +5,8 @@ import math
 import pandas as pd
 #---------------------------------------------------------------------------------
 # load in each set of words
-df_cnc = pd.read_excel (r'TO EDIT_ final experiment word list.xlsx', sheet_name=0)
-df_abs = pd.read_excel (r'TO EDIT_ final experiment word list.xlsx', sheet_name=1)
+df_cnc = pd.read_excel (r'normingTask-final-word-list.xlsx', sheet_name=0)
+df_abs = pd.read_excel (r'normingTask-final-word-list.xlsx', sheet_name=1)
 
 abstract_set = df_abs['REPLACEMENT'].to_numpy()
 concrete_set = df_cnc['REPLACEMENT'].to_numpy()
