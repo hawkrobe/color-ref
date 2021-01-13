@@ -195,11 +195,11 @@ entropies <- d %>%
 deltae <- colors %>%
   left_join(colors, by = c('word')) %>%
   filter(participantID.x != participantID.y) %>%
-  mutate(prior_dist = spacesXYZ::DeltaE(matrix(c(L.x, a.x, b.x), ncol = 3), 
+  mutate(deltae = spacesXYZ::DeltaE(matrix(c(L.x, a.x, b.x), ncol = 3), 
                                         matrix(c(L.y, a.y, b.y), ncol = 3), 
                                         metric = '2000')) %>%
   group_by(word) %>%
-  summarize(prior_dist = mean(prior_dist))
+  summarize(deltae = mean(deltae))
 ```
 
 ## Examine relationship between variance and entropy
@@ -237,14 +237,14 @@ linearModImg <- dCompiled %>%
 linearModBoth <- dCompiled %>%
   lm(entropy ~ imageability + concreteness,
      data=.) 
-
+summary(linearModBoth)
 anova(linearModImg, linearModBoth)
 ```
 
 But only when predicting entropy, not delta-e
 
 ```{r}
-linearMod <- lm(prior_dist ~ imageability + concreteness, data=dCompiled)
+linearMod <- lm(deltae ~ imageability + concreteness, data=dCompiled)
 summary(linearMod)
 
 linearMod <- lm(entropy ~ imageability + concreteness, data=dCompiled)
