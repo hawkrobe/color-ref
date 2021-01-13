@@ -191,15 +191,15 @@ entropies <- d %>%
   group_by(word) %>%
   summarize(entropy = entropy::entropy(n, method = 'SG', unit="log2"))
   
-# get pairwise distances
-deltae <- colors %>%
+# get mean pairwise distances across entire population
+deltae.pop <- colors %>%
   left_join(colors, by = c('word')) %>%
   filter(participantID.x != participantID.y) %>%
-  mutate(prior_dist = spacesXYZ::DeltaE(matrix(c(L.x, a.x, b.x), ncol = 3), 
+  mutate(deltae.pop = spacesXYZ::DeltaE(matrix(c(L.x, a.x, b.x), ncol = 3), 
                                         matrix(c(L.y, a.y, b.y), ncol = 3), 
                                         metric = '2000')) %>%
   group_by(word) %>%
-  summarize(prior_dist = mean(prior_dist))
+  summarize(deltae.pop = mean(deltae.pop))
 ```
 ## Compare computing deltaE by pooling both blocks' responses (prior_dist) to python calculation over only block1 (experiment 1, analysis 1)
 ```{r}
@@ -228,7 +228,7 @@ dCompiled_python = read_csv('./experiment1/analysis1/compiled-variabilityMeasure
        concreteness = as.numeric(concreteness))
 
 dCompiled <- entropies %>%
-  left_join(deltae) %>%
+  left_join(deltae.pop) %>%
   left_join(glasgow) %>%
   filter(!is.na(imageability))
 ```
@@ -260,17 +260,18 @@ linearModImg <- dCompiled %>%
 linearModBoth <- dCompiled %>%
   lm(entropy ~ imageability + concreteness,
      data=.) 
-
+summary(linearModBoth)
 anova(linearModImg, linearModBoth)
 
 ```
+
 ```{r}
 linearModImg <- dCompiled %>%
-  lm(prior_dist ~ imageability,
+  lm(deltae.pop ~ imageability,
      data = .)
 
 linearModBoth <- dCompiled %>%
-  lm(prior_dist ~ imageability + concreteness,
+  lm(deltae.pop ~ imageability + concreteness,
      data=.) 
 
 anova(linearModImg, linearModBoth)
@@ -281,12 +282,13 @@ But only when predicting entropy, not delta-e (if we include color-words)
 Otherwise, ratings are non-redundant when predicting delta-E, not entropy. 
 
 ```{r}
-linearMod <- lm(prior_dist ~ imageability + concreteness, data=dCompiled)
+linearMod <- lm(deltae.pop ~ imageability + concreteness, data=dCompiled)
 summary(linearMod)
 
 linearMod <- lm(entropy ~ imageability + concreteness, data=dCompiled)
 summary(linearMod)
 ```
+
 ```{r}
 # filter out color words and get wordSetID for each word for mixed effects model
 
@@ -304,7 +306,7 @@ wordset <- d %>%
 # include random effect of stimulus set
 dCompiled['wordset'] <- wordset$wordSetID
 
-linearMod <- lmer(prior_dist ~ imageability + concreteness + (1|wordset), data=dCompiled)
+linearMod <- lmer(deltae.pop ~ imageability + concreteness + (1|wordset), data=dCompiled)
 summary(linearMod)
 
 linearMod <- lmer(entropy ~ imageability + concreteness + (1|wordset), data=dCompiled)
@@ -355,6 +357,7 @@ summary(linearMod)
 dIntraparticipant %>%
   group_by(word) %>%
   tidyboot::tidyboot_mean(block1_block2_dist, nboot = 100) %>%
+<<<<<<< HEAD
   left_join(deltae) %>%
   ggplot(aes(x = prior_dist, y = empirical_stat)) +
   geom_point() + 
@@ -367,6 +370,21 @@ dIntraparticipant %>%
   ylim(0, 43) +
   ggthemes::theme_few() +
   theme(aspect.ratio = 1)
+=======
+  rename(deltae.internal = empirical_stat) %>%
+  left_join(deltae.pop) %>%
+  ggplot(aes(x = deltae.internal, y = deltae.pop)) +
+    geom_point() + 
+    geom_abline(slope = 1, intercept = 0, linetype = 'dotted') +
+    geom_errorbarh(aes(xmin = ci_lower, xmax = ci_upper), width = 0, alpha = 0.25) +
+    geom_smooth(method = 'lm', formula = y ~ poly(x,1), color = 'red') +
+    labs(y="Average delta E between different participants", 
+         x= "Average delta E within participant") +
+    xlim(0, 43) +
+    ylim(0, 43) +
+    ggthemes::theme_few() +
+    theme(aspect.ratio = 1)
+>>>>>>> 7fd9a3bde76ce01c9200e5e9399b3309010abc63
 
 ggsave("./experiment1/figures/block1-block2-deltaE.pdf", width=4, height=3)
 ```
