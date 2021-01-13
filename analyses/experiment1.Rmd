@@ -201,6 +201,23 @@ deltae <- colors %>%
   group_by(word) %>%
   summarize(prior_dist = mean(prior_dist))
 ```
+## Compare computing deltaE by pooling both blocks' responses (prior_dist) to python calculation over only block1 (experiment 1, analysis 1)
+```{r}
+deltaE_block1 = read_csv('./experiment1/analysis1/sorted-deltaE-block1.csv') 
+
+compare <- deltaE_block1[order(deltaE_block1$word),] %>%
+  left_join(deltae) %>%
+  rename(bothBlocks = prior_dist, block1 = deltaE)
+
+compare$diff <- abs(compare$bothBlocks - compare$block1)
+
+ggplot(compare, aes(x=word, y= diff, label=word))+
+  geom_point(size = 1) +
+  geom_text(aes(label=word),hjust=0, vjust=0, size=3)
+cor(compare$bothBlocks, compare$block1)
+sum(compare$diff > 1)
+```
+
 
 ## Examine relationship between variance and entropy
 
@@ -309,6 +326,29 @@ dIntraparticipant <- colors %>%
                                         metric = '2000')) 
 ```
 
+```{r}
+# get details of regression corresponding to figure 2B
+
+x <- dIntraparticipant %>%
+  group_by(word) %>%
+  tidyboot::tidyboot_mean(block1_block2_dist, nboot = 100) %>%
+  left_join(deltae) %>%
+  rename(internal = empirical_stat, population = prior_dist)
+  
+
+# prior dist = average block1 delta E for each word (population variability)
+# empirical_stat= average of individuals' block1-block2 delta E for each word (internal variability)
+linearMod <- lm(internal ~ population, data=x)
+summary(linearMod)
+
+cor(x$internal, x$population)
+
+linearMod <- lm(population ~ internal, data=x)
+summary(linearMod)
+
+```
+
+
 # Average block1-block2 deltaE's for each word and plot
 
 ```{r}
@@ -316,7 +356,7 @@ dIntraparticipant %>%
   group_by(word) %>%
   tidyboot::tidyboot_mean(block1_block2_dist, nboot = 100) %>%
   left_join(deltae) %>%
-  ggplot(aes(x = prior_dist, y = empirical_stat))+
+  ggplot(aes(x = prior_dist, y = empirical_stat)) +
   geom_point() + 
   geom_abline(slope = 1, intercept = 0, linetype = 'dotted') +
   geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0, alpha = 0.25) +
