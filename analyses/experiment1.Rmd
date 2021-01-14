@@ -201,7 +201,7 @@ deltae.pop <- colors %>%
   group_by(word) %>%
   summarize(deltae.pop = mean(deltae.pop))
 ```
-## Compare computing deltaE by pooling both blocks' responses (prior_dist) to python calculation over only block1 (experiment 1, analysis 1)
+## experiment 1, analysis 1: Compare computing deltaE by pooling both blocks' responses (prior_dist) to python calculation over only block1
 ```{r}
 deltaE_block1 = read_csv('./experiment1/analysis1/sorted-deltaE-block1.csv') 
 
@@ -216,6 +216,16 @@ ggplot(compare, aes(x=word, y= diff, label=word))+
   geom_text(aes(label=word),hjust=0, vjust=0, size=3)
 cor(compare$bothBlocks, compare$block1)
 sum(compare$diff > 1)
+
+dCompare <- dCompiled %>%
+  left_join(compare, by = c('word'))
+```
+```{r}
+linearMod <- lm(bothBlocks ~ imageability + concreteness, data=dCompare)
+summary(linearMod)
+
+linearMod <- lm(block1 ~ imageability + concreteness, data=dCompare)
+summary(linearMod)
 ```
 
 
@@ -275,8 +285,8 @@ linearModBoth <- dCompiled %>%
      data=.) 
 
 anova(linearModImg, linearModBoth)
-
 ```
+
 
 But only when predicting entropy, not delta-e (if we include color-words)
 Otherwise, ratings are non-redundant when predicting delta-E, not entropy. 
@@ -340,9 +350,6 @@ x <- dIntraparticipant %>%
 
 # prior dist = average block1 delta E for each word (population variability)
 # empirical_stat= average of individuals' block1-block2 delta E for each word (internal variability)
-linearMod <- lm(internal ~ population, data=x)
-summary(linearMod)
-
 cor(x$internal, x$population)
 
 linearMod <- lm(population ~ internal, data=x)
@@ -357,34 +364,19 @@ summary(linearMod)
 dIntraparticipant %>%
   group_by(word) %>%
   tidyboot::tidyboot_mean(block1_block2_dist, nboot = 100) %>%
-<<<<<<< HEAD
-  left_join(deltae) %>%
-  ggplot(aes(x = prior_dist, y = empirical_stat)) +
+  rename(deltae.internal = empirical_stat) %>%
+  left_join(deltae.pop) %>%
+  ggplot(aes(x = deltae.internal, y = deltae.pop)) +
   geom_point() + 
   geom_abline(slope = 1, intercept = 0, linetype = 'dotted') +
-  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0, alpha = 0.25) +
+  geom_errorbarh(aes(xmin = ci_lower, xmax = ci_upper), width = 0, alpha = 0.25) +
   geom_smooth(method = 'lm', formula = y ~ poly(x,1), color = 'red') +
-  labs(x="Average delta E between different participants", 
-       y= "Average delta E within participant") +
+  labs(y="Average delta E between different participants", 
+       x= "Average delta E within participant") +
   xlim(0, 43) +
   ylim(0, 43) +
   ggthemes::theme_few() +
   theme(aspect.ratio = 1)
-=======
-  rename(deltae.internal = empirical_stat) %>%
-  left_join(deltae.pop) %>%
-  ggplot(aes(x = deltae.internal, y = deltae.pop)) +
-    geom_point() + 
-    geom_abline(slope = 1, intercept = 0, linetype = 'dotted') +
-    geom_errorbarh(aes(xmin = ci_lower, xmax = ci_upper), width = 0, alpha = 0.25) +
-    geom_smooth(method = 'lm', formula = y ~ poly(x,1), color = 'red') +
-    labs(y="Average delta E between different participants", 
-         x= "Average delta E within participant") +
-    xlim(0, 43) +
-    ylim(0, 43) +
-    ggthemes::theme_few() +
-    theme(aspect.ratio = 1)
->>>>>>> 7fd9a3bde76ce01c9200e5e9399b3309010abc63
 
 ggsave("./experiment1/figures/block1-block2-deltaE.pdf", width=4, height=3)
 ```
@@ -392,12 +384,35 @@ ggsave("./experiment1/figures/block1-block2-deltaE.pdf", width=4, height=3)
 # Analysis 3: Compare expectations with ground truth metrics
 
 ## Compare expectation (average slider response) to actual percent agreement
-
 ```{r}
 # Z score averages of expectation rating and actual percent matches (across participants) 
 dLogistic = read_csv('./experiment1/analysis3/logistic-regression.csv')
-dLogistic %>% 
-  rename(participantID1 = aID1) %>%
+
+tmp <- dLogistic %>%
+  filter(participantID1 %in% d$participantID) %>%
+  # Collapse to % match for each participant-word pair
+  group_by(word, participantID1) %>%
+  summarize(sliderResponse = mean(participantID1Expectation),
+            groundTruth = mean(matchYN)) %>%
+  # z-score slider responses within participant (i.e. expectation for this word relative to others)
+  group_by(participantID1) %>%
+  mutate(sliderResponse = scale(sliderResponse)) %>%
+  gather(metric, value, sliderResponse:groundTruth) %>%
+  group_by(word, metric) %>%
+  # bootstrap error bars
+  tidyboot::tidyboot_mean(value, nboot = 100) %>%
+  select(-mean, -n) %>%
+  pivot_wider( names_from = metric, values_from = c('empirical_stat', 'ci_lower', 'ci_upper'))
+
+# get summary of regression for figure 2C
+linearMod <- lm(log(empirical_stat_groundTruth) ~ empirical_stat_sliderResponse, data=tmp)
+summary(linearMod)
+
+```
+
+
+```{r}
+dLogistic %>%
   filter(participantID1 %in% d$participantID) %>%
   # Collapse to % match for each participant-word pair
   group_by(word, participantID1) %>%
@@ -413,13 +428,13 @@ dLogistic %>%
   select(-mean, -n) %>%
   pivot_wider( names_from = metric, values_from = c('empirical_stat', 'ci_lower', 'ci_upper')) %>%
   ggplot(aes(x = empirical_stat_sliderResponse, y = log(empirical_stat_groundTruth))) +
-    geom_point() +
-    geom_errorbarh(aes(xmax = ci_upper_sliderResponse, xmin = ci_lower_sliderResponse), alpha = 0.25) +
-    geom_errorbar(aes(ymax = log(ci_upper_groundTruth), ymin = log(ci_lower_groundTruth)), alpha = 0.25) +
-    geom_smooth(method = 'lm', formula = y ~ poly(x, 1), color = 'red') +
-    labs(x = 'expectation', y = 'log P(agreement)') +
-    ggthemes::theme_few() +
-    theme(aspect.ratio = 1)
+  geom_point() +
+  geom_errorbarh(aes(xmax = ci_upper_sliderResponse, xmin = ci_lower_sliderResponse), alpha = 0.25) +
+  geom_errorbar(aes(ymax = log(ci_upper_groundTruth), ymin = log(ci_lower_groundTruth)), alpha = 0.25) +
+  geom_smooth(method = 'lm', formula = y ~ poly(x, 1), color = 'red') +
+  labs(x = 'expectation', y = 'log P(agreement)') +
+  ggthemes::theme_few() +
+  theme(aspect.ratio = 1)
 
 ggsave('./experiment1/figures/expectations.pdf', height = 3, width = 4, units = 'in')
 ```
