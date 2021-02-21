@@ -201,36 +201,7 @@ deltae.pop <- colors %>%
   group_by(word) %>%
   summarize(deltae.pop = mean(deltae.pop))
 ```
-## experiment 1, analysis 1: Compare computing deltaE by pooling both blocks' responses (prior_dist) to python calculation over only block1
-```{r}
-deltaE_block1 = read_csv('./experiment1/analysis1/sorted-deltaE-block1.csv') 
-
-compare <- deltaE_block1[order(deltaE_block1$word),] %>%
-  left_join(deltae) %>%
-  rename(bothBlocks = prior_dist, block1 = deltaE)
-
-compare$diff <- abs(compare$bothBlocks - compare$block1)
-
-ggplot(compare, aes(x=word, y= diff, label=word))+
-  geom_point(size = 1) +
-  geom_text(aes(label=word),hjust=0, vjust=0, size=3)
-cor(compare$bothBlocks, compare$block1)
-sum(compare$diff > 1)
-
-dCompare <- dCompiled %>%
-  left_join(compare, by = c('word'))
-```
-```{r}
-linearMod <- lm(bothBlocks ~ imageability + concreteness, data=dCompare)
-summary(linearMod)
-
-linearMod <- lm(block1 ~ imageability + concreteness, data=dCompare)
-summary(linearMod)
-```
-
-
-## Examine relationship between variance and entropy
-
+## Compiled variance metrics and Glasgow ratings from python analyses and R reproduction
 ```{r}
 dCompiled_python = read_csv('./experiment1/analysis1/compiled-variabilityMeasures-glasgowRatings.csv') %>%
   filter(imageability != 'N/A') %>%
@@ -242,6 +213,8 @@ dCompiled <- entropies %>%
   left_join(glasgow) %>%
   filter(!is.na(imageability))
 ```
+
+## Examine relationship between variance and entropy
 
 ### Visualize relationships between metrics / test correlations
 ```{r}
@@ -270,8 +243,8 @@ linearModImg <- dCompiled %>%
 linearModBoth <- dCompiled %>%
   lm(entropy ~ imageability + concreteness,
      data=.) 
-summary(linearModBoth)
-anova(linearModImg, linearModBoth)
+
+anova(linearModImg, linearModBoth, test="Chisq")
 
 ```
 
@@ -284,7 +257,7 @@ linearModBoth <- dCompiled %>%
   lm(deltae.pop ~ imageability + concreteness,
      data=.) 
 
-anova(linearModImg, linearModBoth)
+anova(linearModImg, linearModBoth, test="Chisq")
 ```
 
 
@@ -565,3 +538,32 @@ dIntraparticipant %>%
     ggthemes::theme_few() +
     theme(aspect.ratio = 1/5) 
 ```
+
+Experiment 1, analysis 1: Compare computing deltaE by pooling both blocks' responses (prior_dist) to python calculation over only block1
+```{r}
+deltaE_block1 = read_csv('./experiment1/analysis1/sorted-deltaE-block1.csv') 
+
+compare <- deltaE_block1[order(deltaE_block1$word),] %>%
+  left_join(deltae.pop) %>%
+  rename(bothBlocks = deltae.pop, block1 = deltaE)
+
+compare$diff <- abs(compare$bothBlocks - compare$block1)
+
+ggplot(compare, aes(x=word, y= diff, label=word))+
+  geom_point(size = 1) +
+  geom_text(aes(label=word),hjust=0, vjust=0, size=3)
+cor(compare$bothBlocks, compare$block1)
+sum(compare$diff > 1)
+
+dCompare <- dCompiled %>%
+  left_join(compare, by = c('word'))
+```
+Compare linear regression models for different deltaE calculations
+```{r}
+linearMod <- lm(bothBlocks ~ imageability + concreteness, data=dCompare)
+summary(linearMod)
+
+linearMod <- lm(block1 ~ imageability + concreteness, data=dCompare)
+summary(linearMod)
+```
+Conclusion: calculating deltaE over both block1 and block2 responses (as done in R analyses) does not produce significantly different results than calculating deltaE over only block1 responses (as done in Python analyses)
