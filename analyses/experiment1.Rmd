@@ -132,9 +132,8 @@ write_csv(d, "../data/norming/colorPickerData.csv")
 # py_run_file("experiment1.py")
 ```
 
-# Analysis 1: To what extent does concretentess/imageability predict variability
 
-## Reproduced analysis
+# Reproduced analysis from Python scripts
 
 ```{r}
 colors <- d %>%
@@ -213,8 +212,17 @@ dCompiled <- entropies %>%
   left_join(glasgow) %>%
   filter(!is.na(imageability))
 ```
+# Analysis 0: Using compsyn vectors to motivate study of variability
 
-## Examine relationship between variance and entropy
+
+```{r}
+
+```
+
+
+
+
+# Analysis 1: To what extent does concretentess/imageability predict variability
 
 ### Visualize relationships between metrics / test correlations
 ```{r}
@@ -273,6 +281,8 @@ summary(linearMod)
 ```
 
 ```{r}
+library(lme4)
+
 # filter out color words and get wordSetID for each word for mixed effects model
 
 `%notin%` <- Negate(`%in%`)
