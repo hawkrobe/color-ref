@@ -106,7 +106,8 @@ d <- d.raw %>%
   filter(participantID %in% complete_ids) %>%
   filter(!(participantID %in% colorblind_ids)) %>%
   filter(!(participantID %in% response_streak_ids)) %>%
-  filter(!(participantID %in% low_rt_ids))
+  filter(!(participantID %in% low_rt_ids)) %>%
+  filter(condition %in% c('block1_target_trial', 'block2_target_trial'))
 
 d %>%
   group_by(wordSetID, participantID) %>%
@@ -137,12 +138,15 @@ write_csv(d, "../data/norming/colorPickerData.csv")
 ## Reproduced analysis
 
 ```{r}
+wordset.assignments <- d %>%
+  group_by(word) %>%
+  summarize(wordSetID = as.integer(mean(wordSetID)))
+
 colors <- d %>%
   cbind(c(.$response_r/255, .$response_g/255, .$response_b/255) %>%
         matrix(ncol = 3) %>%
         convertColor(from = 'sRGB', to = 'Lab') %>%
         data.frame()) %>%
-  filter(condition %in% c('block1_target_trial', 'block2_target_trial')) %>%
   select(participantID, condition, word, L, a, b)
 
 # get imageability and concreteness
@@ -183,7 +187,6 @@ glasgow <- read_csv('../data/norming/GlasgowNorms.csv') %>%
 
 # get entropies
 entropies <- d %>%
-  filter(condition %in% c('block1_target_trial', 'block2_target_trial')) %>%
   group_by(word, button_pressed) %>%
   tally() %>%
   ungroup() %>%
@@ -213,10 +216,12 @@ dCompiled_python = read_csv('./experiment1/analysis1/compiled-variabilityMeasure
 dCompiled <- entropies %>%
   left_join(deltae.pop) %>%
   left_join(glasgow) %>%
+  left_join(wordset.assignments) %>%
   filter(!is.na(imageability))
 ```
 
 ### Visualize relationships between metrics / test correlations
+
 ```{r}
 dCompiled_python %>% 
   select(-word) %>%
@@ -231,68 +236,76 @@ dCompiled %>%
   ggthemes::theme_few()
 ```
 
-### Compare regression models 
+### Compare regression models for predicting entropy 
 
-Some evidence for concreteness as non-redundant with imageability
+No evidence for concreteness as non-redundant with imageability -- no evidence for random effects
 
 ```{r}
-linearModImg <- dCompiled %>%
+entropyMod.img <- dCompiled %>%
   lm(entropy ~ imageability,
      data = .)
 
-linearModBoth <- dCompiled %>%
+entropyMod.both <- dCompiled %>%
   lm(entropy ~ imageability + concreteness,
      data=.) 
-summary(linearModBoth)
-anova(linearModImg, linearModBoth)
 
+entropyMod.lmer <- dCompiled %>%
+  lmer(entropy ~ imageability + concreteness + (1 | wordSetID), 
+       REML = F,
+       data=.)
+
+anova(entropyMod.lmer, entropyMod.both, entropyMod.img)
 ```
 
+This is the best-fitting model for entropy.
+
 ```{r}
-linearModImg <- dCompiled %>%
+summary(entropyMod.img)
+```
+
+Concreteness has small non-redundent effect when predicting delta-E. 
+
+```{r}
+deltaeMod.img <- dCompiled %>%
   lm(deltae.pop ~ imageability,
      data = .)
 
-linearModBoth <- dCompiled %>%
-  lm(deltae.pop ~ imageability + concreteness,
-     data=.) 
+deltaeMod.both <- dCompiled %>% 
+  lm(deltae.pop ~ imageability + concreteness, 
+     data = .)
 
-anova(linearModImg, linearModBoth)
+deltaeMod.lmer <- dCompiled %>%
+  lmer(deltae.pop ~ imageability + concreteness + (1 | wordSetID), 
+       data = .)
 
+anova(deltaeMod.lmer, deltaeMod.both, deltaeMod.img)
 ```
 
-But only when predicting entropy, not delta-e (if we include color-words)
-Otherwise, ratings are non-redundant when predicting delta-E, not entropy. 
+This is the best-fitting model for delta-e
 
 ```{r}
-linearMod <- lm(deltae.pop ~ imageability + concreteness, data=dCompiled)
-summary(linearMod)
+summary(deltaeMod.both)
+```
 
+
+Note that this relationship flips if we include the color words from the practice trials (i.e. 'blue', 'red', 'green'.) 
+In other words, concreteness becomes significant when predicting entropy but *not* delta-e. 
+Why? One observation is that these words tend to have high imageability but low concreteness and are at the low end of the entropy/delta-e scales.
+These scales pull apart because of the slight warping of the space of munsell chips (e.g. with more blue chips than yellow chips, meaning lower delta-e than entropy) so these additional data points must interact with that different between measures.
+In any case, the predictive power of imageability appears stronger in all cases than any marginal effect of concreteness.
+
+
+```{r}
 linearMod <- lm(entropy ~ imageability + concreteness, data=dCompiled)
 summary(linearMod)
 ```
 
 ```{r}
 # filter out color words and get wordSetID for each word for mixed effects model
-
-`%notin%` <- Negate(`%in%`)
-
-wordset <- d %>%
-  group_by(word) %>%
-  filter(word %notin% c('red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink')) %>%
-  filter(word %in% dCompiled$word) %>%
-  summarize(wordSetID = mean(wordSetID)) %>%
-  mutate(wordSetID = as.integer(wordSetID)) %>%
-  mutate(wordSetID = as.numeric(wordSetID))
-
-
-# include random effect of stimulus set
-dCompiled['wordset'] <- wordset$wordSetID
-
-linearMod <- lmer(deltae.pop ~ imageability + concreteness + (1|wordset), data=dCompiled)
+linearMod <- lmer(deltae.pop ~ imageability + concreteness + (1|wordSetID), data=dCompiled)
 summary(linearMod)
 
-linearMod <- lmer(entropy ~ imageability + concreteness + (1|wordset), data=dCompiled)
+linearMod <- lmer(entropy ~ imageability + concreteness + (1|wordSetID), data=dCompiled)
 summary(linearMod)
 ```
 
