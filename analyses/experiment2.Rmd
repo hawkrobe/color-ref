@@ -11,9 +11,10 @@ library(lmerTest)
 library(tidyboot)
 library(here)
 library(spacesXYZ)
+library(sjPlot)
 
-d.raw.colors <- read_csv(here('data/ref-game/colors.csv'))
-d.raw.clicks <- read_csv(here('data/ref-game/clicks.csv'))
+d.raw.colors <- read_csv(here('data/ref-game/colors.csv'), show_col_types = F)
+d.raw.clicks <- read_csv(here('data/ref-game/clicks.csv'), show_col_types = F)
 ```
 
 ## Implement exclusion criterion
@@ -30,7 +31,7 @@ completeIDs <- d.raw.clicks %>%
 
 
 cat('we have', length(completeIDs), 'complete games out of the',
-    d.raw %>%   group_by(gameId) %>%  tally() %>% pull(gameId) %>% length(),
+    d.raw.colors %>%   group_by(gameId) %>%  tally() %>% pull(gameId) %>% length(),
     'that we recruited')
 ```
 
@@ -55,35 +56,6 @@ passedCatchIDs <- d.raw.colors %>%
   unique()
 
 cat(length(passedCatchIDs), '/', length(completeIDs), 'complete games had both participants pass the catch trials')
-```
-
-Look at overall RT distribution (some on the low end...)
-
-```{r}
-
-d.raw.colors %>% 
-  mutate(dataType = 'colors') %>% 
-  filter(phase == 'refGame') %>%
-  bind_rows(d.raw.clicks %>% mutate(dataType = 'clicks')) %>%
-  filter(gameId %in% passedCatchIDs) %>%
-  ggplot(aes(x = log(rt))) +
-    geom_histogram() +
-    facet_grid(dataType ~. )
-```
-Look at participant-level rt distribution for any outliers that consistently responded much quicker/slower than others.
-
-```{r}
-d.raw.colors %>% 
-  mutate(dataType = 'colors') %>% 
-  filter(phase == 'refGame') %>%
-  bind_rows(d.raw.clicks %>% mutate(dataType = 'clicks')) %>%
-  filter(gameId %in% passedCatchIDs) %>%
-  filter(phase == 'refGame') %>%
-  group_by(participantID, dataType) %>%
-  summarize(rt = mean(log(rt))) %>%
-  ggplot(aes(x = rt)) +
-    geom_histogram() +
-    facet_grid(dataType ~. )
 ```
 
 # Analysis 1: predict communciative success as a function of the prior
@@ -118,25 +90,29 @@ Statistics at within-participant level
 
 ```{r}
 # Singular, but roughly the same estimate as the bayesian model so not critical
-clicks %>%  
+glmer.fit <- clicks %>% 
+  mutate(correct = factor(correct)) %>%
   glmer(correct ~ condition * blockNum + 
-                 (condition * blockNum  | gameId),
+                 (condition + blockNum  | gameId),
       family = 'binomial',
-      contrasts = list(condition = contr.treatment(2, base = 1)),
+      contrasts = list(condition = contr.sum(2)),
       control = glmerControl(optimizer = 'bobyqa'),
-      data = .) %>%
-  summary()
+      data = .) 
+
+summary(glmer.fit)
+plot_model(glmer.fit, type =  "int")
 ```
 
 ```{r}
 # Bayesian version: note that this takes a long time to run!
-# clicks %>%  
-#   brms::brm(correct ~ condition * poly(blockNum,2) + 
-#                 (condition * poly(blockNum,2)  | gameId) + 
-#                 (poly(blockNum,2)  | target),
-#       family = brms::bernoulli(link = "logit"),
-#       data = .) %>%
-#   summary()
+clicks %>%
+  brms::brm(correct ~ condition * poly(blockNum,2) +
+                (condition * poly(blockNum,2)  | gameId) +
+                (poly(blockNum,2)  | target),
+      family = brms::bernoulli(link = "logit"),
+      contrasts = list(condition = contr.sum(2)),
+      data = .) %>%
+  summary()
 ```
 
 ```
@@ -232,8 +208,27 @@ clicks %>%
     geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0) +
     geom_smooth(method = 'lm', se = F, formula = y ~ poly(x,1)) +
     theme_few() +
+    #guides(color = F) +
     ylim(0.25, 1.1) +
-    labs(y = '% accuracy', x = 'block #')
+    labs(y = '% accuracy', x = 'block #') +
+    theme(aspect.ratio = 1, legend.direction = 'horizontal', legend.position = c(.5, .2))
+
+ggsave('./experiment2/quantiles.pdf', height = 3, width = 3, units = 'in')
+```
+
+```{r}
+prior.fit <- clicks %>%
+  left_join(pre_test_dists) %>%
+  group_by(gameId) %>%
+  mutate(correct = factor(correct),
+         blockNum = scale(blockNum),
+         prior_dist = scale(log1p(prior_dist))) %>%
+  glm(correct ~ blockNum * prior_dist, # + (1 + prior_dist * blockNum || gameId) +  (1 + prior_dist * blockNum || target),
+        family = 'binomial',
+        data = .)
+
+summary(prior.fit)
+plot_model(prior.fit, type =  "int")
 ```
 
 ```{r}
@@ -293,7 +288,7 @@ pre_post_dists %>%
     geom_line() +
     geom_hline(yintercept = 0) +
     geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0) +
-    labs(y = 'euclidean distance between partner associations', x = '') +
+    labs(y = 'distance b/w associations', x = '') +
     ylim(0, 50) +
     theme_few() +
     theme(aspect.ratio = 1)
@@ -301,7 +296,26 @@ pre_post_dists %>%
 ggsave('./experiment2/pre-post.pdf', height = 4, width = 4, units = 'in')
 ```
 
+```{r}
+pre_post_dists %>%
+  filter(set == 'test', phase == 'pre') %>%
+  lmer(prior_dist ~ condition + (1 + condition | gameId) + (1 | target),
+       data = .) %>%
+  summary()
+```
+
 Stats for pre-post design...
+
+```{r}
+pre_post_dists %>%
+  filter(set == 'test') %>%
+  lmer(scale(prior_dist) ~ condition * phase + (condition * phase | gameId),
+       contrasts = list(condition = contr.sum(2),
+                        phase = contr.sum(2)),
+       data = .) %>%
+  summary()
+
+```
 
 ```{r}
 pre_post_dists %>%
@@ -312,6 +326,94 @@ pre_post_dists %>%
                         phase = contr.sum(2)),
        data = .) %>%
   summary()
+```
+
+## Analysis 2.2: directionality of adaptation
+
+```{r}
+pre <- colors %>% filter(phase == 'pre', set == 'test') %>%
+  left_join(colors %>% filter(phase == 'pre', set == 'test'), 
+            by = c('gameId', 'target', 'condition')) %>%
+  mutate(participantID.y = ifelse(participantID.y == participantID.x, 'own', 'other')) %>%
+  rename(participantID = participantID.x, L = L.y, a = a.y, b = b.y) %>%
+  select(gameId, participantID, participantID.y, target, condition, L, a, b) %>%
+  pivot_wider(names_from = participantID.y, 
+              values_from = c(L, a, b)) 
+
+alignment <- colors %>%
+  filter(phase != 'post') %>%
+  filter(!(set %in% c('catch', 'control'))) %>%
+  mutate(blockNum = ifelse(is.na(blockNum), phase, blockNum + 1),
+         blockNum = ifelse(blockNum == 'pre', 0, blockNum)) %>%
+  select(gameId, participantID, target, condition, L, a, b, blockNum) %>%
+  left_join(pre) %>%
+  group_by(gameId, target) %>%
+  mutate(participantID =  factor(as.character(participantID), labels = c('P1', 'P2'))) %>%
+  arrange(gameId, target) %>%
+  group_by(gameId, target, participantID) %>%
+  mutate(dist_from_own_init = spacesXYZ::DeltaE(matrix(c(L, a, b), ncol = 3), 
+                                        matrix(c(L_own, a_own, b_own), ncol = 3), 
+                                        metric = '2000'),
+         dist_from_other_init = spacesXYZ::DeltaE(matrix(c(L, a, b), ncol = 3), 
+                                        matrix(c(L_other, a_other, b_other), ncol = 3), 
+                                        metric = '2000')) %>%
+  mutate(blockNum = as.numeric(blockNum),
+         firstSpeaker = blockNum %% 2 == 1) %>%
+  pivot_longer(cols = c(dist_from_own_init, dist_from_other_init))
+
+alignment %>%
+  group_by(condition, firstSpeaker, blockNum, name) %>%
+  tidyboot_mean(value, nboot = 100) %>%
+  mutate(name = ifelse(name == 'dist_from_own_init', 'from own', 'from other')) %>%
+  bind_rows(data.frame(condition='abstract', blockNum = 0, firstSpeaker=FALSE, name='from own', empirical_stat = 0),
+            data.frame(condition='abstract', blockNum = 0, firstSpeaker=FALSE, name='from other', empirical_stat = 35.5),
+            data.frame(condition='concrete', blockNum = 0, firstSpeaker=FALSE, name='from own', empirical_stat = 0),
+            data.frame(condition='concrete', blockNum = 0, firstSpeaker=FALSE, name='from other', empirical_stat = 22)) %>%
+  ggplot(aes(x = blockNum, y = empirical_stat, 
+             linetype = name, color = firstSpeaker, group = interaction(name, firstSpeaker))) +
+    geom_line() +
+    geom_point(size = 2.5) +
+    geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0, linetype = 'solid') +
+    geom_hline(aes(yintercept = c(35.5)), data = data.frame(condition = 'abstract')) +
+    geom_hline(aes(yintercept = c(22)), data = data.frame(condition = 'concrete')) +
+    geom_hline(aes(yintercept = 0)) +
+    scale_x_continuous(labels = c('pre', 1,2,3,4,5,6), breaks = c(0,1,2,3,4,5,6)) +
+    labs(y = 'distance (delta E)', x = 'block #') +
+    facet_wrap(~ condition) +
+    theme_few() +
+    theme(aspect.ratio = 1)
+
+ggsave('alignment.pdf')
+```
+
+
+```{r}
+m1 <- alignment %>%
+  filter(name == 'dist_from_own_init', blockNum > 0) %>%
+  lmer(value ~ scale(blockNum) + condition + (1 | gameId) + (1 | target),
+       data = .) 
+
+m2 <- alignment %>%
+  filter(name == 'dist_from_own_init', blockNum > 0) %>%
+  lmer(value ~ scale(blockNum) + firstSpeaker + condition + (1 + firstSpeaker | gameId) + (1 | target),
+       data = .) 
+summary(m2)
+anova(m1, m2)
+```
+
+```{r}
+m1 <- alignment %>%
+  filter(name == 'dist_from_other_init', blockNum > 0) %>%
+  lmer(value ~ scale(blockNum) + condition + (1 | gameId) + (1 | target),
+       data = .)
+
+m2 <- alignment %>%
+  filter(name == 'dist_from_other_init', blockNum > 0) %>%
+  lmer(value ~ scale(blockNum) + firstSpeaker + condition + (1 + firstSpeaker | gameId) + (1 | target),
+       data = .)
+
+summary(m2)
+anova(m1, m2)
 ```
 
 # Supplementary analyses (not included in paper)
@@ -352,4 +454,35 @@ clicks %>%
     theme_few() +
     facet_wrap(~ blockNum) +
     labs(y = '% accuracy', x = 'block #')
+```
+
+# Supplemental
+
+Look at overall RT distribution (some on the low end...)
+
+```{r}
+d.raw.colors %>% 
+  mutate(dataType = 'colors') %>% 
+  filter(phase == 'refGame') %>%
+  bind_rows(d.raw.clicks %>% mutate(dataType = 'clicks')) %>%
+  filter(gameId %in% passedCatchIDs) %>%
+  ggplot(aes(x = log(rt))) +
+    geom_histogram() +
+    facet_grid(dataType ~. )
+```
+
+Look at participant-level rt distribution for any outliers that consistently responded much quicker/slower than others.
+
+```{r}
+d.raw.colors %>% 
+  mutate(dataType = 'colors') %>% 
+  filter(phase == 'refGame') %>%
+  bind_rows(d.raw.clicks %>% mutate(dataType = 'clicks')) %>%
+  filter(gameId %in% passedCatchIDs) %>%
+  filter(phase == 'refGame') %>%
+  group_by(participantID, dataType) %>%
+  summarize(rt = mean(log(rt))) %>%
+  ggplot(aes(x = rt)) +
+    geom_histogram() +
+    facet_grid(dataType ~. )
 ```
