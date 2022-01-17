@@ -70,22 +70,6 @@ clicks <- d.raw.clicks %>%
   separate(context_id, into = c('condition', 'context_id')) 
 ```
 
-Plot by condition 
-
-```{r}
-clicks %>%
-  group_by(blockNum, condition) %>%
-  tidyboot::tidyboot_mean(correct) %>%
-  ggplot(aes(x = blockNum, y = empirical_stat, color = condition)) +
-    geom_point() +
-    geom_hline(yintercept = c(1,0.25), linetype = 'dotted') +
-    geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0) +
-    geom_smooth(method = 'lm', se = F, formula = y ~ poly(x,2)) +
-    theme_few() +
-    ylim(0.25, 1.01) +
-    labs(y = '% accuracy', x = 'block #')
-```
-
 Statistics at within-participant level
 
 ```{r}
@@ -195,23 +179,41 @@ pre_test_dists <- colors %>%
 Plot accuracy curves for different quantiles of similarity in pre-test scores
 
 ```{r}
-clicks %>%
+conditions.toplot <- clicks %>%
+  group_by(blockNum, condition) %>%
+  tidyboot::tidyboot_mean(correct) %>%
+  mutate(dist_quantile = ifelse(condition == 'concrete', 2, 4))
+
+conditions.toplot %>% filter(blockNum %in% c(0,5))
+```
+
+```{r}
+quantiles.toplot <- clicks %>%
   left_join(pre_test_dists) %>%
   ungroup() %>%
   mutate(dist_quantile = cut_number(prior_dist, n = 5)) %>%
   group_by(blockNum, dist_quantile) %>%
-  tidyboot::tidyboot_mean(correct) %>%
-  ggplot(aes(x = blockNum, y = empirical_stat, 
-             color = as.numeric(dist_quantile), group = as.numeric(dist_quantile))) +
-    geom_point() +
+  tidyboot::tidyboot_mean(correct) 
+
+clicks %>%
+  ggplot(aes(x = blockNum + 1, y = empirical_stat, color = as.numeric(dist_quantile))) +
+    geom_line(aes(group = as.numeric(dist_quantile)),
+              stat="smooth",method = "lm", se = F, alpha = 0.75, linetype='dashed',
+              data = quantiles.toplot) +
+    geom_line(aes(group = condition), size = 1, 
+              data = conditions.toplot) +
+    geom_text(aes(label=condition),  nudge_x = -0.4, nudge_y = -.2, vjust = "inward",
+              data = conditions.toplot %>% filter(blockNum == 5)) +
+    geom_point(aes(group = condition), size = 2, 
+              data = conditions.toplot) +
+    geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper, group = condition), width = 0,
+              data = conditions.toplot) +
     geom_hline(yintercept = c(0.25, 1), linetype = 'dotted') +
-    geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0) +
-    geom_smooth(method = 'lm', se = F, formula = y ~ poly(x,1)) +
     theme_few() +
-    #guides(color = F) +
     ylim(0.25, 1.1) +
-    labs(y = '% accuracy', x = 'block #') +
-    theme(aspect.ratio = 1, legend.direction = 'horizontal', legend.position = c(.5, .2))
+    scale_x_continuous(breaks = c(1,2,3,4,5,6), labels = c(1,2,3,4,5,6)) +
+    labs(y = 'accuracy', x = 'block #') +
+    theme(legend.position = 'none', aspect.ratio = 1)
 
 ggsave('./experiment2/quantiles.pdf', height = 3, width = 3, units = 'in')
 ```

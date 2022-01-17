@@ -10,13 +10,16 @@ library(tidyverse)
 library(knitr)
 library(scales)
 library(xtable)
+library(GG)
 library(ggrepel)
+
+source('helpers.R')
 ```
 
 # Import raw data & implement exclusion criteria
 
 ```{r}
-d.raw = read_csv('../data/norming/color.csv') 
+d.raw = read_csv('../data/norming/color.csv', show_col_types=F) 
 ```
 
 Only include participants who completed exactly 89 color-picker trials (all 80 words + 9 practice/catch trials)
@@ -53,7 +56,7 @@ Exclude based on colorblindness & RT
 # plate2 => normal = ['8' => key 56], red-green = ['3' => key 51]
 # plate4 => normal = ['5' => key 53], red-green = ['2' => key 50]
 # plate5 => normal = ['3' => key 51], red-green = ['5' => key 53]
-colorblind_ids = read_csv('../data/norming/colorblindness.csv') %>%
+colorblind_ids = read_csv('../data/norming/colorblindness.csv', show_col_types=F) %>%
   filter(participantID %in% complete_ids) %>%
   filter(case_when(stimulus == 2 ~ key_press != 56 & key_press != 51,
                    stimulus == 4 ~ key_press != 53 & key_press != 50,
@@ -115,7 +118,7 @@ d %>%
   group_by(wordSetID) %>%
   tally()
 
-cat('including', length(unique(d$participantID)), 'complete games out of the', 
+cat('including', length(unique(d$participantID)), 'out of the', 
     length(unique(d.raw$participantID)), 'we recruited')
 ```
 
@@ -133,15 +136,16 @@ write_csv(d, "../data/norming/colorPickerData.csv")
 # py_run_file("experiment1.py")
 ```
 
+# Pre-process
 
-# Reproduced analysis from Python scripts
+Pre-compute some variance metrics and pull in word norms
 
 ```{r}
 wordset.assignments <- d %>%
   group_by(word) %>%
   summarize(wordSetID = as.integer(mean(wordSetID)))
 
-colors <- d %>%
+d.color <- d %>%
   cbind(c(.$response_r/255, .$response_g/255, .$response_b/255) %>%
         matrix(ncol = 3) %>%
         convertColor(from = 'sRGB', to = 'Lab') %>%
@@ -149,40 +153,7 @@ colors <- d %>%
   select(participantID, condition, word, L, a, b)
 
 # get imageability and concreteness
-glasgow <- read_csv('../data/norming/GlasgowNorms.csv') %>%
-  mutate(word = case_when(word == 'bunk (bed)' ~ 'bunkbed',
-                          word == 'absurd' ~ 'absurdity',
-                          word == 'defiant' ~ 'defiance',
-                          word == 'admire' ~ 'admiration',
-                          word == 'adore' ~ 'adoration',
-                          word == 'clear' ~ 'clarity',
-                          word == 'complex' ~ 'complexity',
-                          word == 'crazy' ~ 'craziness',
-                          word == 'diverse' ~ 'diversity',
-                          word == 'divine' ~ 'divinity',
-                          word == 'elegant' ~ 'elegance',
-                          word == 'friendly' ~ 'friendliness',
-                          word == 'inflame' ~ 'inflamation',
-                          word == 'modest' ~ 'modesty',
-                          word == 'mystery' ~ 'mysterious',
-                          word == 'obvious' ~ 'obviousness',
-                          word == 'odd' ~ 'oddity',
-                          word == 'peculiar' ~ 'peculiarity',
-                          word == 'playful' ~ 'playfulness',
-                          word == 'positive' ~ 'positivity',
-                          word == 'random' ~ 'randomness',
-                          word == 'real' ~ 'reality',
-                          word == 'reassure' ~ 'reassurance',
-                          word == 'relieved' ~ 'relief',
-                          word == 'shy' ~ 'shyness',
-                          word == 'thoughtless' ~ 'thoughtlessness',
-                          word == 'vague' ~ 'vagueness',
-                          word == 'vicious' ~ 'viciousness',
-                          word == 'weary' ~ 'weariness',
-                          TRUE ~ word)) %>%
-  select(word, CNC, IMAG) %>%
-  rename(concreteness = CNC,
-         imageability = IMAG)
+glasgow <- getGlasgow()
 
 # get entropies
 entropies <- d %>%
@@ -194,140 +165,81 @@ entropies <- d %>%
   summarize(entropy = entropy::entropy(n, method = 'SG', unit="log2"))
   
 # get mean pairwise distances across entire population
-deltae.pop <- colors %>%
-  left_join(colors, by = c('word')) %>%
+deltae.pop <- d.color %>%
+  left_join(d.color, by = c('word')) %>%
   filter(participantID.x != participantID.y) %>%
   mutate(deltae.pop = spacesXYZ::DeltaE(matrix(c(L.x, a.x, b.x), ncol = 3), 
                                         matrix(c(L.y, a.y, b.y), ncol = 3), 
                                         metric = '2000')) %>%
   group_by(word) %>%
   summarize(deltae.pop = mean(deltae.pop))
-```
-## Compiled variance metrics and Glasgow ratings from python analyses and R reproduction
-```{r}
-dCompiled_python = read_csv('./experiment1/analysis1/compiled-variabilityMeasures-glasgowRatings.csv') %>%
-  filter(imageability != 'N/A') %>%
-  mutate(imageability = as.numeric(imageability),
-       concreteness = as.numeric(concreteness))
 
+means.pop <- d.color %>%
+  group_by(word) %>%
+  summarize(meanL = mean(L), meanA = mean(a), meanB = mean(b), 
+            stdL = sd(L), stdA = sd(a), stdB = sd(b))
+```
+
+Consolidate everything in a single dataframe 
+
+```{r}
 dCompiled <- entropies %>%
   left_join(deltae.pop) %>%
   left_join(glasgow) %>%
   left_join(wordset.assignments) %>%
-  filter(!is.na(imageability))
-```
-# Analysis 0: Using compsyn vectors to motivate study of variability
-
-
-```{r}
-
+  left_join(means.pop) %>%
+  filter(!is.na(imageability)) 
 ```
 
+# Analysis 1: To what extent does concreteness/imageability predict variability
 
+## Visualize pairwise relationships between metrics & test correlations
 
-
-# Analysis 1: To what extent does concretentess/imageability predict variability
-
-### Visualize relationships between metrics / test correlations
-
-```{r}
-dCompiled_python %>% 
-  select(-word) %>%
-  GGally::ggpairs(lower = list(continuous = "smooth"), progress = F) + 
-  ggthemes::theme_few()
-```
+Look at pairwise correlations
 
 ```{r}
 dCompiled %>% 
-  select(-word) %>%
-  GGally::ggpairs(lower = list(continuous = "smooth"), progress = F) + 
+  select(entropy, deltae.pop, concreteness, imageability) %>%
+  mutate(concreteness = as.numeric(scale(concreteness)),
+         imageability = as.numeric(scale(imageability)),
+         deltae.pop = as.numeric(scale(deltae.pop)),
+         entropy = as.numeric(scale(entropy))) %>%
+  GGally::ggpairs(lower = list(continuous = "smooth"), 
+                  upper = list(continuous = wrap('cor', method = "spearman")), 
+                  progress = F) + 
   ggthemes::theme_few()
+
+ggsave('../analyses/concreteness_imageability_pairs.pdf', height = 6, width = 7)
 ```
 
-### Compare regression models for predicting entropy 
+## regression model for predicting entropy 
 
-No evidence for concreteness as non-redundant with imageability -- no evidence for random effects
 
 ```{r}
-entropyMod.img <- dCompiled %>%
-  lm(entropy ~ imageability,
-     data = .)
-
-entropyMod.both <- dCompiled %>%
-  lm(entropy ~ imageability + concreteness,
-
-anova(linearModImg, linearModBoth, test="Chisq")
-
-entropyMod.lmer <- dCompiled %>%
-  lmer(entropy ~ imageability + concreteness + (1 | wordSetID), 
-       REML = F,
-       data=.)
-
-anova(entropyMod.lmer, entropyMod.both, entropyMod.img)
+dCompiled %>%
+  lm(scale(entropy) ~ imageability + concreteness, data =.) %>%
+  summary()
 ```
 
-This is the best-fitting model for entropy.
-
-```{r}
-summary(entropyMod.img)
-```
+## regression model predicting deltaE 
 
 Concreteness has small non-redundent effect when predicting delta-E. 
 
 ```{r}
-deltaeMod.img <- dCompiled %>%
-  lm(deltae.pop ~ imageability,
-     data = .)
-
-deltaeMod.both <- dCompiled %>% 
-  lm(deltae.pop ~ imageability + concreteness, 
-     data = .)
-
-deltaeMod.lmer <- dCompiled %>%
-  lmer(deltae.pop ~ imageability + concreteness + (1 | wordSetID), 
-       data = .)
-
-anova(deltaeMod.lmer, deltaeMod.both, deltaeMod.img)
+dCompiled %>% 
+  lm(deltae.pop ~ imageability + concreteness, data = .) %>%
+  summary()
 ```
-
-This is the best-fitting model for delta-e
-But only when predicting entropy, not delta-e (if we include color-words)
-Otherwise, ratings are non-redundant when predicting delta-E, not entropy. 
-
-```{r}
-summary(deltaeMod.both)
-```
-
 
 Note that this relationship flips if we include the color words from the practice trials (i.e. 'blue', 'red', 'green'.) 
 In other words, concreteness becomes significant when predicting entropy but *not* delta-e. 
-Why? One observation is that these words tend to have high imageability but low concreteness and are at the low end of the entropy/delta-e scales.
-These scales pull apart because of the slight warping of the space of munsell chips (e.g. with more blue chips than yellow chips, meaning lower delta-e than entropy) so these additional data points must interact with that different between measures.
-In any case, the predictive power of imageability appears stronger in all cases than any marginal effect of concreteness.
-
-
-```{r}
-linearMod <- lm(entropy ~ imageability + concreteness, data=dCompiled)
-summary(linearMod)
-```
-
-```{r}
-library(lme4)
-
-# filter out color words and get wordSetID for each word for mixed effects model
-linearMod <- lmer(deltae.pop ~ imageability + concreteness + (1|wordSetID), data=dCompiled)
-summary(linearMod)
-
-linearMod <- lmer(entropy ~ imageability + concreteness + (1|wordSetID), data=dCompiled)
-summary(linearMod)
-```
+Why? One observation is that these color words tend to have high imageability but low concreteness and are at the low end of the entropy/delta-e scales.
+The measures of variation pull apart because of the slight warping of the space of munsell chips (e.g. with more blue chips than yellow chips, meaning lower delta-e than entropy) so these additional data points must interact with that different between measures.
 
 ## Analysis 2: Intra-participant variability
 
 ```{r}
-dIntraparticipant_python = read_csv('./experiment1/analysis2/block1-block2-deltaE.csv') 
-
-dIntraparticipant <- colors %>%
+d.intra <- d.color %>%
   separate(condition, into = c('block', 'trialtype')) %>%
   filter(block %in% c('block1', 'block2'), trialtype == 'target') %>%
   group_by(participantID, word) %>%
@@ -339,39 +251,37 @@ dIntraparticipant <- colors %>%
 
 ```{r}
 # get details of regression corresponding to figure 2B
-
-x <- dIntraparticipant %>%
+d.intra.collapsed <- d.intra %>%
   group_by(word) %>%
   tidyboot::tidyboot_mean(block1_block2_dist, nboot = 100) %>%
-  left_join(deltae) %>%
-  rename(internal = empirical_stat, population = prior_dist)
+  right_join(dCompiled %>% select(word,deltae.pop)) %>%
+  rename(internal = empirical_stat, population = deltae.pop)
   
-
 # prior dist = average block1 delta E for each word (population variability)
 # empirical_stat= average of individuals' block1-block2 delta E for each word (internal variability)
-cor(x$internal, x$population)
+cor.test(d.intra.collapsed$internal, d.intra.collapsed$population)
 
-linearMod <- lm(population ~ internal, data=x)
-summary(linearMod)
-
+d.intra.collapsed %>%
+  lm(population ~ internal, data=.) %>%
+  summary()
 ```
 
 
 # Average block1-block2 deltaE's for each word and plot
 
 ```{r}
-dIntraparticipant %>%
+d.intra %>%
   group_by(word) %>%
   tidyboot::tidyboot_mean(block1_block2_dist, nboot = 100) %>%
   rename(deltae.internal = empirical_stat) %>%
   left_join(deltae.pop) %>%
-  ggplot(aes(x = deltae.internal, y = deltae.pop)) +
+  ggplot(aes(x = deltae.pop, y = deltae.internal)) +
   geom_point() + 
   geom_abline(slope = 1, intercept = 0, linetype = 'dotted') +
-  geom_errorbarh(aes(xmin = ci_lower, xmax = ci_upper), width = 0, alpha = 0.25) +
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0, alpha = 0.25) +
   geom_smooth(method = 'lm', formula = y ~ poly(x,1), color = 'red') +
-  labs(y="Average delta E between different participants", 
-       x= "Average delta E within participant") +
+  labs(x="Average delta E between different participants", 
+       y= "Average delta E within participant") +
   xlim(0, 43) +
   ylim(0, 43) +
   ggthemes::theme_few() +
@@ -383,6 +293,7 @@ ggsave("./experiment1/figures/block1-block2-deltaE.pdf", width=4, height=3)
 # Analysis 3: Compare expectations with ground truth metrics
 
 ## Compare expectation (average slider response) to actual percent agreement
+
 ```{r}
 # Z score averages of expectation rating and actual percent matches (across participants) 
 dLogistic = read_csv('./experiment1/analysis3/logistic-regression.csv')
@@ -402,11 +313,6 @@ tmp <- dLogistic %>%
   tidyboot::tidyboot_mean(value, nboot = 100) %>%
   select(-mean, -n) %>%
   pivot_wider( names_from = metric, values_from = c('empirical_stat', 'ci_lower', 'ci_upper'))
-
-# get summary of regression for figure 2C
-linearMod <- lm(log(empirical_stat_groundTruth) ~ empirical_stat_sliderResponse, data=tmp)
-summary(linearMod)
-
 ```
 
 
@@ -438,6 +344,40 @@ dLogistic %>%
 ggsave('./experiment1/figures/expectations.pdf', height = 3, width = 4, units = 'in')
 ```
 
+
+# get summary of regression for figure 2C
+
+```{r}
+
+cor.test(log(tmp$empirical_stat_groundTruth), tmp$empirical_stat_sliderResponse)
+cor.test(tmp$empirical_stat_groundTruth, tmp$empirical_stat_sliderResponse)
+
+linearMod <- lm(log(empirical_stat_groundTruth) ~ empirical_stat_sliderResponse, data=tmp)
+summary(linearMod)
+```
+
+## Compare expectation (average slider response) to DeltaE among participants' block 2 responses
+
+```{r}
+dDeltaE = read_csv('./experiment1/analysis3/sorted-deltaE-block2.csv') 
+
+# zscoring:
+deltaE <- dDeltaE[order(dDeltaE$word),] %>%
+  mutate(zscore = (deltaE - mean(deltaE))/sd(deltaE))
+# averaging slider + zscoring
+
+expectation <- aggregate(dExpectation[, 2], list(dExpectation$word), mean) %>%
+  rename(word = "Group.1", avgExpectation = sliderResponse) %>%
+  mutate(zscore = (avgExpectation - mean(avgExpectation))/sd(avgExpectation))
+
+# plot
+scatter.smooth(x=expectation$zscore, y=deltaE$zscore, xlab="Average expecation rating", ylab="Average Delta E among block2 repsonses", main="Expected agreement vs. average Delta E")
+
+# correlation
+cor.test(expectation$zscore, deltaE$zscore)
+```
+
+
 ## Compare expectation (average slider response) to entropy
 
 ```{r}
@@ -454,25 +394,6 @@ scatter.smooth(x=expectation$zscore, y=entropy$entropy, xlab = "Entropy of parti
 cor.test(expectation$zscore, entropy$zscore)
 ```
 
-## Compare expectation (average slider response) to DeltaE among participants' block 2 responses
-
-```{r}
-dDeltaE = read_csv('./experiment1/analysis3/sorted-deltaE-block2.csv') 
-
-# zscoring:
-deltaE <- dDeltaE[order(dDeltaE$word),] %>%
-  mutate(zscore = (deltaE - mean(deltaE))/sd(deltaE))
-# averaging slider + zscoring
-expectation <- aggregate(dExpectation[, 2], list(dExpectation$word), mean) %>%
-  rename(word = "Group.1", avgExpectation = sliderResponse) %>%
-  mutate(zscore = (avgExpectation - mean(avgExpectation))/sd(avgExpectation))
-
-# plot
-scatter.smooth(x=expectation$zscore, y=deltaE$zscore, xlab="Average expecation rating", ylab="Average Delta E among block2 repsonses", main="Expected agreement vs. average Delta E")
-
-# correlation
-cor.test(expectation$zscore, deltaE$zscore)
-```
 ## Expectation ratings vs. ground truth (calculated as percentage of total response that agreed with each participant's response)
 
 The following analyses show that the ground truth agreements are much lower than the slider responses for expected agreement. Plotting the distributions of the expected and actual agreements for the 10 words with the least entropy in their prior distributions (i.e. most agreement), shows that only the words whose distributions would be expected to center around yellows, have an actual agreement that is somewhat reflective of their concreteness and expectation ratings. Meanwhile, the words whose response distributions would be expected to center on reds ("tomato", "fire", "apple") and greens ("spinach", "vegetable", "tree") have actual agreements that are much lower than expected. In the context of the munsell space that participants selected from--one which has a larger variety of red and green color choices, but very few yellow ones--this discrepancy suggests that when people rate their expected agreement they're considering the space of all reds, greens, etc. as "sharing" their color association (vs. the particular color they picked), but in reality words like "tomato" and "fire" and "vegetable" have many of different red or green responses that deflate the agreement.
@@ -566,25 +487,40 @@ dIntraparticipant %>%
 ```
 
 Experiment 1, analysis 1: Compare computing deltaE by pooling both blocks' responses (prior_dist) to python calculation over only block1
+
 ```{r}
-deltaE_block1 = read_csv('./experiment1/analysis1/sorted-deltaE-block1.csv') 
+compare <- d.color %>%
+  left_join(d.color, by = c('word')) %>%
+  filter(participantID.x != participantID.y) %>%
+  mutate(condition = case_when(condition.x == 'block1_target_trial' & condition.y == 'block1_target_trial' ~ 'block1',
+                               condition.x == 'block2_target_trial' & condition.y == 'block2_target_trial' ~ 'block2',
+                               TRUE ~ 'crossblock')) %>%
+  mutate(deltae.pop = spacesXYZ::DeltaE(matrix(c(L.x, a.x, b.x), ncol = 3), 
+                                        matrix(c(L.y, a.y, b.y), ncol = 3), 
+                                        metric = '2000')) %>%
+  group_by(word, condition) %>%
+  summarize(deltae.pop = mean(deltae.pop)) %>%
+  spread(condition, deltae.pop) %>% 
+  ungroup() %>% 
+  summarize(b12 = cor(block1, block2), 
+            b1c = cor(block1,`crossblock`), 
+            b2c = cor(block2,`crossblock`))
 
-compare <- deltaE_block1[order(deltaE_block1$word),] %>%
-  left_join(deltae.pop) %>%
-  rename(bothBlocks = deltae.pop, block1 = deltaE)
-
-compare$diff <- abs(compare$bothBlocks - compare$block1)
-
-ggplot(compare, aes(x=word, y= diff, label=word))+
-  geom_point(size = 1) +
-  geom_text(aes(label=word),hjust=0, vjust=0, size=3)
-cor(compare$bothBlocks, compare$block1)
-sum(compare$diff > 1)
+# compare$diff <- abs(compare$bothBlocks - compare$block1)
+# 
+# ggplot(compare, aes(x=word, y= diff, label=word))+
+#   geom_point(size = 1) +
+#   geom_text(aes(label=word),hjust=0, vjust=0, size=3)
+# 
+# cor(compare$bothBlocks, compare$block1)
+# sum(compare$diff > 1)
 
 dCompare <- dCompiled %>%
   left_join(compare, by = c('word'))
 ```
+
 Compare linear regression models for different deltaE calculations
+
 ```{r}
 linearMod <- lm(bothBlocks ~ imageability + concreteness, data=dCompare)
 summary(linearMod)
@@ -592,4 +528,5 @@ summary(linearMod)
 linearMod <- lm(block1 ~ imageability + concreteness, data=dCompare)
 summary(linearMod)
 ```
+
 Conclusion: calculating deltaE over both block1 and block2 responses (as done in R analyses) does not produce significantly different results than calculating deltaE over only block1 responses (as done in Python analyses)
