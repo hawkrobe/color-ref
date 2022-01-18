@@ -10,7 +10,7 @@ library(tidyverse)
 library(knitr)
 library(scales)
 library(xtable)
-library(GG)
+library(GGally)
 library(ggrepel)
 
 source('helpers.R')
@@ -295,49 +295,61 @@ ggsave("./experiment1/figures/block1-block2-deltaE.pdf", width=4, height=3)
 ## Compare expectation (average slider response) to actual percent agreement
 
 ```{r}
-# Z score averages of expectation rating and actual percent matches (across participants) 
-dLogistic = read_csv('./experiment1/analysis3/logistic-regression.csv')
+# start with raw expectation ratings
+expectations <- read_csv('../data/norming/expectations.csv') %>%
+  select(participantID, word, sliderResponse) %>%
+  
+  # merge in participant's own response on that trial
+  left_join(d %>% 
+              filter(condition == 'block2_target_trial') %>% 
+              select(word, button_pressed, participantID, condition)) %>%
+  select(-condition) %>%
+    
+  # merge in other participants' responses (on both both blocks)
+  left_join(d %>% select(word, button_pressed, participantID, condition), by = c('word')) %>%
+  filter(participantID.x != participantID.y) %>%
+  mutate(match = button_pressed.x == button_pressed.y)
 
-tmp <- dLogistic %>%
-  filter(participantID1 %in% d$participantID) %>%
-  # Collapse to % match for each participant-word pair
-  group_by(word, participantID1) %>%
-  summarize(sliderResponse = mean(participantID1Expectation),
-            groundTruth = mean(matchYN)) %>%
+expectations.boot <- expectations %>%
+  filter(participantID.x %in% d$participantID) %>%
+  # Collapse to match value for each participant-word pair
+  group_by(word, participantID.x) %>%
+  summarize(sliderResponse = mean(sliderResponse),
+            button_response = mean(button_pressed.x),
+            match = (mean(c(match, 1)))) %>%
   # z-score slider responses within participant (i.e. expectation for this word relative to others)
-  group_by(participantID1) %>%
-  mutate(sliderResponse = scale(sliderResponse)) %>%
-  gather(metric, value, sliderResponse:groundTruth) %>%
+  group_by(participantID.x) %>%
+  mutate(expected = scale(sliderResponse),
+         actual = log(match / (1-match)),
+         actual_alt = log(match)) %>%
+  gather(metric, value, expected, actual, actual_alt) %>%
   group_by(word, metric) %>%
   # bootstrap error bars
-  tidyboot::tidyboot_mean(value, nboot = 100) %>%
+  tidyboot::tidyboot_mean(value, nboot = 100, na.rm = T) %>%
   select(-mean, -n) %>%
   pivot_wider( names_from = metric, values_from = c('empirical_stat', 'ci_lower', 'ci_upper'))
 ```
 
+```{r}
+expectations.boot %>%
+  ggplot(aes(x = empirical_stat_expected, y = empirical_stat_actual_alt)) +
+  geom_point() +
+  geom_errorbarh(aes(xmax = ci_upper_expected, xmin = ci_lower_expected), alpha = 0.25) +
+  geom_errorbar(aes(ymax = ci_upper_actual_alt, ymin = ci_lower_actual_alt), alpha = 0.25) +
+  geom_smooth(method = 'lm', formula = y ~ poly(x, 1), color = 'red') +
+  labs(x = 'expectation', y = 'log p(agreement)') +
+  ggthemes::theme_few() +
+  theme(aspect.ratio = 1)
+```
 
 ```{r}
-dLogistic %>%
-  filter(participantID1 %in% d$participantID) %>%
-  # Collapse to % match for each participant-word pair
-  group_by(word, participantID1) %>%
-  summarize(sliderResponse = mean(participantID1Expectation),
-            groundTruth = mean(matchYN)) %>%
-  # z-score slider responses within participant (i.e. expectation for this word relative to others)
-  group_by(participantID1) %>%
-  mutate(sliderResponse = scale(sliderResponse)) %>%
-  gather(metric, value, sliderResponse:groundTruth) %>%
-  group_by(word, metric) %>%
-  # bootstrap error bars
-  tidyboot::tidyboot_mean(value, nboot = 100) %>%
-  select(-mean, -n) %>%
-  pivot_wider( names_from = metric, values_from = c('empirical_stat', 'ci_lower', 'ci_upper')) %>%
-  ggplot(aes(x = empirical_stat_sliderResponse, y = log(empirical_stat_groundTruth))) +
+tmp %>%
+  ggplot(aes(x = empirical_stat_expected, y = empirical_stat_actual)) +
   geom_point() +
-  geom_errorbarh(aes(xmax = ci_upper_sliderResponse, xmin = ci_lower_sliderResponse), alpha = 0.25) +
-  geom_errorbar(aes(ymax = log(ci_upper_groundTruth), ymin = log(ci_lower_groundTruth)), alpha = 0.25) +
+  geom_errorbarh(aes(xmax = ci_upper_expected, xmin = ci_lower_expected), alpha = 0.25) +
+  geom_errorbar(aes(ymax = ci_upper_actual, ymin = ci_lower_actual), alpha = 0.25) +
   geom_smooth(method = 'lm', formula = y ~ poly(x, 1), color = 'red') +
-  labs(x = 'expectation', y = 'log P(agreement)') +
+  labs(x = 'expectation', y = 'true log odds (p / 1 - p)') +
   ggthemes::theme_few() +
   theme(aspect.ratio = 1)
 
@@ -348,13 +360,90 @@ ggsave('./experiment1/figures/expectations.pdf', height = 3, width = 4, units = 
 # get summary of regression for figure 2C
 
 ```{r}
+cor.test(tmp$empirical_stat_actual, tmp$empirical_stat_expected,  method = 'pearson')
 
-cor.test(log(tmp$empirical_stat_groundTruth), tmp$empirical_stat_sliderResponse)
-cor.test(tmp$empirical_stat_groundTruth, tmp$empirical_stat_sliderResponse)
+# might worry about log transform, but rank correlation on raw (untransformed) agreement probability is similarly high
+cor.test(exp(tmp$empirical_stat_actual_alt), tmp$empirical_stat_expected, method = 'spearman')
+```
 
-linearMod <- lm(log(empirical_stat_groundTruth) ~ empirical_stat_sliderResponse, data=tmp)
+# Supplemental
+
+Visualize color grids
+
+```{r}
+d %>%
+  mutate(hex = rgb(response_r/255, response_g/255, response_b/255)) %>%
+  group_by(word) %>%
+  do(ggsave(filename = paste0('color_grids/', .$word, '.png'), device = 'png', 
+            plot = show_col(.$hex, labels = F)))
+```
+
+Visualize entropies
+
+```{r}
+ordered <- dCompiled[order( dCompiled$entropy ),]
+barplot(ordered$entropy, main="Entropy", xlab="words")
+```
+
+Plot DeltaE for all words
+
+```{r}
+dIntraparticipant %>%
+  mutate(word = factor(word)) %>%
+  ggplot(aes(x = fct_reorder(word, block1_block2_dist), y = block1_block2_dist)) + 
+    geom_boxplot(width = 1) +
+    labs(y="Delta E (CIE2000)", x = "Word") + 
+    guides(x = guide_axis(n.dodge = 1, angle = 90, check.overlap = T)) +
+    ggtitle("Delta E between individual participants' block1 and block2 color response") +
+    ggthemes::theme_few() +
+    theme(aspect.ratio = 1/5) 
+```
+
+Experiment 1, analysis 1: Compare computing deltaE by pooling both blocks' responses (prior_dist) to python calculation over only block1
+
+```{r}
+compare <- d.color %>%
+  left_join(d.color, by = c('word')) %>%
+  filter(participantID.x != participantID.y) %>%
+  mutate(condition = case_when(condition.x == 'block1_target_trial' & condition.y == 'block1_target_trial' ~ 'block1',
+                               condition.x == 'block2_target_trial' & condition.y == 'block2_target_trial' ~ 'block2',
+                               TRUE ~ 'crossblock')) %>%
+  mutate(deltae.pop = spacesXYZ::DeltaE(matrix(c(L.x, a.x, b.x), ncol = 3), 
+                                        matrix(c(L.y, a.y, b.y), ncol = 3), 
+                                        metric = '2000')) %>%
+  group_by(word, condition) %>%
+  summarize(deltae.pop = mean(deltae.pop)) %>%
+  spread(condition, deltae.pop) %>% 
+  ungroup() %>% 
+  summarize(b12 = cor(block1, block2), 
+            b1c = cor(block1,`crossblock`), 
+            b2c = cor(block2,`crossblock`))
+
+# compare$diff <- abs(compare$bothBlocks - compare$block1)
+# 
+# ggplot(compare, aes(x=word, y= diff, label=word))+
+#   geom_point(size = 1) +
+#   geom_text(aes(label=word),hjust=0, vjust=0, size=3)
+# 
+# cor(compare$bothBlocks, compare$block1)
+# sum(compare$diff > 1)
+
+dCompare <- dCompiled %>%
+  left_join(compare, by = c('word'))
+```
+
+Compare linear regression models for different deltaE calculations
+
+```{r}
+linearMod <- lm(bothBlocks ~ imageability + concreteness, data=dCompare)
+summary(linearMod)
+
+linearMod <- lm(block1 ~ imageability + concreteness, data=dCompare)
 summary(linearMod)
 ```
+
+Conclusion: calculating deltaE over both block1 and block2 responses (as done in R analyses) does not produce significantly different results than calculating deltaE over only block1 responses (as done in Python analyses)
+
 
 ## Compare expectation (average slider response) to DeltaE among participants' block 2 responses
 
@@ -452,81 +541,3 @@ m <- glmer(matchYN ~ aID1Expectation + (1 | aID1), data = dLogistic)
 print(m)
 ```
 
-
-# Supplemental
-
-Visualize color grids
-
-```{r}
-d %>%
-  mutate(hex = rgb(response_r/255, response_g/255, response_b/255)) %>%
-  group_by(word) %>%
-  do(ggsave(filename = paste0('color_grids/', .$word, '.png'), device = 'png', 
-            plot = show_col(.$hex, labels = F)))
-```
-
-Visualize entropies
-
-```{r}
-ordered <- dCompiled[order( dCompiled$entropy ),]
-barplot(ordered$entropy, main="Entropy", xlab="words")
-```
-
-Plot DeltaE for all words
-
-```{r}
-dIntraparticipant %>%
-  mutate(word = factor(word)) %>%
-  ggplot(aes(x = fct_reorder(word, block1_block2_dist), y = block1_block2_dist)) + 
-    geom_boxplot(width = 1) +
-    labs(y="Delta E (CIE2000)", x = "Word") + 
-    guides(x = guide_axis(n.dodge = 1, angle = 90, check.overlap = T)) +
-    ggtitle("Delta E between individual participants' block1 and block2 color response") +
-    ggthemes::theme_few() +
-    theme(aspect.ratio = 1/5) 
-```
-
-Experiment 1, analysis 1: Compare computing deltaE by pooling both blocks' responses (prior_dist) to python calculation over only block1
-
-```{r}
-compare <- d.color %>%
-  left_join(d.color, by = c('word')) %>%
-  filter(participantID.x != participantID.y) %>%
-  mutate(condition = case_when(condition.x == 'block1_target_trial' & condition.y == 'block1_target_trial' ~ 'block1',
-                               condition.x == 'block2_target_trial' & condition.y == 'block2_target_trial' ~ 'block2',
-                               TRUE ~ 'crossblock')) %>%
-  mutate(deltae.pop = spacesXYZ::DeltaE(matrix(c(L.x, a.x, b.x), ncol = 3), 
-                                        matrix(c(L.y, a.y, b.y), ncol = 3), 
-                                        metric = '2000')) %>%
-  group_by(word, condition) %>%
-  summarize(deltae.pop = mean(deltae.pop)) %>%
-  spread(condition, deltae.pop) %>% 
-  ungroup() %>% 
-  summarize(b12 = cor(block1, block2), 
-            b1c = cor(block1,`crossblock`), 
-            b2c = cor(block2,`crossblock`))
-
-# compare$diff <- abs(compare$bothBlocks - compare$block1)
-# 
-# ggplot(compare, aes(x=word, y= diff, label=word))+
-#   geom_point(size = 1) +
-#   geom_text(aes(label=word),hjust=0, vjust=0, size=3)
-# 
-# cor(compare$bothBlocks, compare$block1)
-# sum(compare$diff > 1)
-
-dCompare <- dCompiled %>%
-  left_join(compare, by = c('word'))
-```
-
-Compare linear regression models for different deltaE calculations
-
-```{r}
-linearMod <- lm(bothBlocks ~ imageability + concreteness, data=dCompare)
-summary(linearMod)
-
-linearMod <- lm(block1 ~ imageability + concreteness, data=dCompare)
-summary(linearMod)
-```
-
-Conclusion: calculating deltaE over both block1 and block2 responses (as done in R analyses) does not produce significantly different results than calculating deltaE over only block1 responses (as done in Python analyses)
