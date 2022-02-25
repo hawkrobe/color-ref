@@ -12,5 +12,5 @@ Both experiments were designed to run online and require [`node.js`](https://nod
 
 ## Reproducing analyses
 
-To reproduce analyses, first unzip the raw data, which are stored in `./data/norming/` and `./data/data/refGame`. Then navigate to the analysis notebooks [`experiment1.Rmd`](https://github.com/hawkrobe/color-ref/blob/master/analyses/experiment1.Rmd) and [`experiment2.Rmd`](https://github.com/hawkrobe/color-ref/blob/master/analyses/experiment2.Rmd), respectively. 
+To reproduce analyses, first unzip the raw data, which are stored in `./data/norming/` and `./data/refGame`. Then navigate to the analysis notebooks [`experiment1.Rmd`](https://github.com/hawkrobe/color-ref/blob/master/analyses/experiment1.Rmd) and [`experiment2.Rmd`](https://github.com/hawkrobe/color-ref/blob/master/analyses/experiment2.Rmd), respectively. 
 
