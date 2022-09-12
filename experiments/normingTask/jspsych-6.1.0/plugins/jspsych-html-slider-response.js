@@ -163,8 +163,7 @@ jsPsych.plugins['html-slider-response'] = (function() {
       // save data
       var trialdata = {
         "rt": response.rt,
-        "response": response.response,
-        "stimulus": trial.stimulus
+        "sliderResponse": _.toInteger(response.response)
       };
 
       display_element.innerHTML = '';
