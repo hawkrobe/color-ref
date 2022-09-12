@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title> Reference game </title>
+
+    <!-- Load jQuery, which lets us handle mouse events -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <link rel="stylesheet"
+          href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+          crossorigin="anonymous">
+
+    <!-- Load custom css after bootstrap -->
+    <link rel="stylesheet" href="/dist/css/custom.css" type="text/css">
+    <script type="text/javascript" src="dist/js/bundle.js"></script>
+    <script type="text/javascript" src="dist/js/mmturkey.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box}
+        body { font: 13px Helvetica, Arial; background: #0F0F0F; color:#FFFFFF}
+        #messages li { padding: 5px 10px; }
+        /*#messages li:nth-child(odd) { background: #eee; }*/
+    </style>
+
+    </head>
+
+  <body>
+    <div class="container">
+      <p id="waiting">
+        Waiting for another player...<br />
+        Please do not refresh the page!<br />
+        If wait exceeds 10 minutes, <br />
+        we recommend returning the HIT <br />
+        and trying again later.
+      </p>
+      <div id='pre-post-div' class='main_div pt-3' style="display:none;"></div>
+      <div id='main-div' class='main_div pt-3' style="display:none; width:1000px; margin: 0 auto;">
+        <div class='row'>
+          <div class="col">
+            <h3 id='role'></h3>
+            <p class="col" id='instructs'></p>
+          </div>
+          <div class="col" id='feedback'></div>
+        </div>
+
+        <div class="row align-items-center" id="word-grid"
+             style="width:1000px;height: 150px"></div>
+        <div class="row" id="color-picker-grid"></div>
+        <div class="row pt-2 text-center" id="trial-info">
+          <h5 class="col counter" id="trial-counter">
+            <p>Waiting Room</p>
+          </h5>
+          <h5 class="col counter" id="score-counter"></h5>
+        </div>
+      </div>
+
+      <div id="exit_survey" style="display:none; margin-top:5%">
+
+        <div class="form-group row">
+          <label for="language" class="col-sm-4 col-form-label">
+            Are you a native English speaker?
+          </label>
+          <div class="col-sm-2">
+            <select id="language" class="form-control">
+	    <option value="language::noResponse"></option>
+	    <option value="language::yes">Yes</option>
+	    <option value="language::no">No</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <label for="human" class="col-sm-4 col-form-label">
+            Did you believe you were playing against another human?
+          </label>
+          <div class="col-sm-5">
+            <select id="human" class="form-control">
+              <option value="human::NoResponse"></option>
+              <option value="human::human">Yes, I thought they were a human</option>
+              <option value="human::program">No, I thought it was a computer program</option>
+            </select>
+            <small id='humanResult' class="form-text text-muted" style="display:none;color:red">
+              Thank you for your response! In this experiment everyone was human!
+            </small>
+          </div>
+        </div>
+        
+        <div class="form-group row">
+          <label for="didCorrectly" class="col-sm-4 col-form-label">
+            Did you read the instructions and do you think you did the HIT correctly?
+          </label>
+          <div class="col-sm-2">
+            <select class="form-control">
+              <option value="didCorrectly::NoResponse"></option>
+              <option value="didCorrectly::yes">Yes</option>
+              <option value="didCorrectly::no">No</option>
+              <option value="didCorrectly::confused">I was confused</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-group row">
+          <label for="strategy" class="col-sm-4 col-form-label">
+            How would you describe your strategy in this experiment?
+          </label>
+          <div class="col-sm-4">
+            <textarea class="form-control" id='strategy' rows="4"></textarea>
+          </div>
+        </div>
+        
+        <div class="form-group row">
+          <label for="comments" class="col-sm-4 col-form-label">
+            Did you notice any problems or have any other comments on the experiment?
+          </label>
+          <div class="col-sm-4">
+            <textarea class="form-control" id='comments' rows="4"></textarea>
+          </div>
+        </div>
+        
+        <p> Clicking this button should automatically submit the HIT and close this tab. </p>
+        <div>
+          <button id="surveySubmit" class="btn btn-primary" type="button">Submit HIT</button>
+        </div>
+        <small style="display:none" class="form-text text-muted" id="button_error">
+          <p>
+            If you have clicked the button and nothing happened, you
+            can use the code box that appeared on the mturk tab as
+            a <b>backup method</b> to make sure you still get paid: just
+            enter the code <strong>E2iZwi8d</strong> -- no need to contact us!
+          </p>
+          <p>
+            If still experience a problem submitting with that method,
+            please contact cogtoolslab.requester@gmail.com for compensation.
+          </p>
+        </small>
+      </div> <!-- end: exit_survey> -->
+    </div>
+  </body>
+</html>
