@@ -1,5 +1,8 @@
 node_modules
+.Rhistory
+README.html
 *.nb.html
+*.csv
 dataFromMongo.csv
 bundle.js*
 .DS_Store

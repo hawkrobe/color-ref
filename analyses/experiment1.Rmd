@@ -19,7 +19,7 @@ source('helpers.R')
 # Import raw data & implement exclusion criteria
 
 ```{r}
-d.raw = read_csv('../data/norming/color.csv', show_col_types=F) 
+d.raw = read_csv('../data/norming/color_raw.csv', show_col_types=F)
 ```
 
 Only include participants who completed exactly 89 color-picker trials (all 80 words + 9 practice/catch trials)
@@ -125,7 +125,7 @@ cat('including', length(unique(d$participantID)), 'out of the',
 Save out cleaned data for python scripts:
 
 ```{r}
-write_csv(d, "../data/norming/colorPickerData.csv")
+write_csv(d, "../data/norming/color_preprocessed.csv")
 ```
 
 ```{r}
@@ -297,63 +297,58 @@ ggsave("./experiment1/figures/block1-block2-deltaE.pdf", width=4, height=3)
 ```{r}
 # start with raw expectation ratings
 expectations <- read_csv('../data/norming/expectations.csv') %>%
+  filter(participantID %in% d$participantID)  %>%
   select(participantID, word, sliderResponse) %>%
   
-  # merge in participant's own response on that trial
+  # merge in participant's own response on trial where they provided rating
   left_join(d %>% 
               filter(condition == 'block2_target_trial') %>% 
               select(word, button_pressed, participantID, condition)) %>%
   select(-condition) %>%
     
-  # merge in other participants' responses (on both both blocks)
+  # merge in other participants' responses (from both blocks)
   left_join(d %>% select(word, button_pressed, participantID, condition), by = c('word')) %>%
   filter(participantID.x != participantID.y) %>%
   mutate(match = button_pressed.x == button_pressed.y)
 
 expectations.boot <- expectations %>%
-  filter(participantID.x %in% d$participantID) %>%
-  # Collapse to match value for each participant-word pair
+  
+  # Compute proportion of matches for each participant-word pair
+  # (adding pseudo-count to regularize & avoid zeros)
   group_by(word, participantID.x) %>%
   summarize(sliderResponse = mean(sliderResponse),
             button_response = mean(button_pressed.x),
             match = (mean(c(match, 1)))) %>%
-  # z-score slider responses within participant (i.e. expectation for this word relative to others)
+  
+  # z-score slider responses within participant 
+  # (i.e. expectation for this word relative to others)
   group_by(participantID.x) %>%
   mutate(expected = scale(sliderResponse),
-         actual = log(match / (1-match)),
-         actual_alt = log(match)) %>%
-  gather(metric, value, expected, actual, actual_alt) %>%
-  group_by(word, metric) %>%
+         true_log_odds = log(match / (1-match)),
+         true_log_prob = log(match)) %>%
+  gather(metric, value, expected, true_log_odds, true_log_prob) %>%
+    
   # bootstrap error bars
-  tidyboot::tidyboot_mean(value, nboot = 100, na.rm = T) %>%
+  group_by(word, metric) %>%
+  tidyboot::tidyboot_mean(value, nboot = 1000, na.rm = T) %>%
   select(-mean, -n) %>%
-  pivot_wider( names_from = metric, values_from = c('empirical_stat', 'ci_lower', 'ci_upper'))
+  pivot_wider(names_from = metric, values_from = c('empirical_stat', 'ci_lower', 'ci_upper'))
 ```
+
 
 ```{r}
 expectations.boot %>%
-  ggplot(aes(x = empirical_stat_expected, y = empirical_stat_actual_alt)) +
+  ggplot(aes(x = empirical_stat_expected, y = empirical_stat_true_log_odds)) +
   geom_point() +
   geom_errorbarh(aes(xmax = ci_upper_expected, xmin = ci_lower_expected), alpha = 0.25) +
-  geom_errorbar(aes(ymax = ci_upper_actual_alt, ymin = ci_lower_actual_alt), alpha = 0.25) +
+  geom_errorbar(aes(ymax = ci_upper_true_log_odds, ymin = ci_lower_true_log_odds), alpha = 0.25) +
   geom_smooth(method = 'lm', formula = y ~ poly(x, 1), color = 'red') +
-  labs(x = 'expectation', y = 'log p(agreement)') +
-  ggthemes::theme_few() +
-  theme(aspect.ratio = 1)
-```
-
-```{r}
-tmp %>%
-  ggplot(aes(x = empirical_stat_expected, y = empirical_stat_actual)) +
-  geom_point() +
-  geom_errorbarh(aes(xmax = ci_upper_expected, xmin = ci_lower_expected), alpha = 0.25) +
-  geom_errorbar(aes(ymax = ci_upper_actual, ymin = ci_lower_actual), alpha = 0.25) +
-  geom_smooth(method = 'lm', formula = y ~ poly(x, 1), color = 'red') +
-  labs(x = 'expectation', y = 'true log odds (p / 1 - p)') +
+  labs(x = 'expected agreement (scaled)', y = 'actual agreement (log odds)') +
+  xlim(-1.5, 1.7) +
   ggthemes::theme_few() +
   theme(aspect.ratio = 1)
 
-ggsave('./experiment1/figures/expectations.pdf', height = 3, width = 4, units = 'in')
+ggsave(here('analyses/python/experiment1/figures/expectations.pdf'), height = 3, width = 3, units = 'in')
 ```
 
 
