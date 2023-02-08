@@ -121,7 +121,7 @@ var initialize = function(query, client, id) {
     const packet = _.extend({}, data, {
       dbname: 'color-ref',
       colname: 'ref-game',
-      iterationName: 'testing',
+      iterationName: 'full_sample',
       gameId: client.game.id,
       time: Date.now(),
     });
